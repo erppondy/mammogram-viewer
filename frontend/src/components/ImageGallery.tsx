@@ -4,6 +4,7 @@ import ImageViewer from './ImageViewer';
 import DicomViewer from './DicomViewer';
 import FilterPanel, { FilterOptions } from './FilterPanel';
 import LazyImage from './LazyImage';
+import CustomLoader from './CustomLoader';
 
 interface Image {
   id: string;
@@ -197,7 +198,10 @@ export default function ImageGallery() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
-        <p className="text-gray-600 text-center">Loading images...</p>
+        <div className="flex flex-col items-center gap-4 py-8">
+          <CustomLoader size={50} />
+          <p className="text-gray-600 text-center">Loading images...</p>
+        </div>
       </div>
     );
   }

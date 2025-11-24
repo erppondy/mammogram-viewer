@@ -80,7 +80,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-lg p-6" style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(10px)' }}>
       <div className="mb-4">
         <input
           type="text"

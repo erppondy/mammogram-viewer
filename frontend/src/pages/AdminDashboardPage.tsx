@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminService, UserResponse, SystemStats } from '../services/adminService';
 import AdminStats from '../components/admin/AdminStats';
 import UserManagementTable from '../components/admin/UserManagementTable';
+import CustomLoader from '../components/CustomLoader';
 
 const AdminDashboardPage: React.FC = () => {
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -111,16 +112,19 @@ const AdminDashboardPage: React.FC = () => {
 
   if (loading && users.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <CustomLoader size={60} />
+          <div className="text-xl text-white">Loading Dashboard...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%)', minHeight: '100vh' }}>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-center p-6 rounded-lg" style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(10px)' }}>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">Manage user accounts and approvals</p>

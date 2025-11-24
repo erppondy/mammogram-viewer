@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { analyticsService, DashboardMetrics, ImageStatistics } from '../services/analyticsService';
+import CustomLoader from '../components/CustomLoader';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -63,7 +64,10 @@ export default function AnalyticsDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-600">Loading analytics...</p>
+        <div className="flex flex-col items-center gap-4">
+          <CustomLoader size={60} />
+          <p className="text-gray-600">Loading analytics...</p>
+        </div>
       </div>
     );
   }
