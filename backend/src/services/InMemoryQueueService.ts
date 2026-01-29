@@ -43,7 +43,7 @@ class InMemoryQueue<T = any> extends EventEmitter {
   private concurrency: number;
   private processing: boolean = false;
 
-  constructor(name: string, concurrency: number = 1) {
+  constructor(_name: string, concurrency: number = 1) {
     super();
     this.concurrency = concurrency;
   }

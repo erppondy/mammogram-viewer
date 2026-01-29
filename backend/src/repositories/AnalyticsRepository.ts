@@ -1,4 +1,4 @@
-import { pool } from '../config/database';
+import pool from '../config/database';
 
 export interface ImageView {
   id: number;
@@ -41,7 +41,7 @@ export interface SystemStats {
 
 class AnalyticsRepository {
   // Image Views
-  async trackImageView(imageId: number, userId: number, viewDuration?: number): Promise<void> {
+  async trackImageView(imageId: string, userId: string, viewDuration?: number): Promise<void> {
     await pool.query(
       'INSERT INTO image_views (image_id, user_id, view_duration) VALUES ($1, $2, $3)',
       [imageId, userId, viewDuration]
@@ -71,10 +71,10 @@ class AnalyticsRepository {
 
   // User Activity
   async trackActivity(
-    userId: number,
+    userId: string,
     activityType: string,
     resourceType?: string,
-    resourceId?: number,
+    resourceId?: string,
     metadata?: any,
     ipAddress?: string,
     userAgent?: string

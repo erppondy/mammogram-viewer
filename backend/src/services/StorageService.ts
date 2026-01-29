@@ -33,14 +33,25 @@ export class StorageService {
         userId: string,
         imageId: string,
         buffer: Buffer,
-        extension: string
+        extension: string,
+        patientFolder?: string
     ): Promise<string> {
         const now = new Date();
         const year = now.getFullYear().toString();
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
 
         const userDir = `user-${userId}`;
-        const relativePath = path.join('images', userDir, year, month);
+        
+        // Include patient folder if provided
+        let relativePath: string;
+        if (patientFolder) {
+            // Sanitize patient folder name
+            const sanitizedPatient = patientFolder.replace(/[^a-zA-Z0-9_-]/g, '_');
+            relativePath = path.join('images', userDir, sanitizedPatient, year, month);
+        } else {
+            relativePath = path.join('images', userDir, year, month);
+        }
+        
         const fullPath = path.join(this.storageRoot, relativePath);
 
         await this.ensureDirectory(fullPath);

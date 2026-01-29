@@ -1,11 +1,20 @@
 import * as dicomParser from 'dicom-parser';
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
+
+interface ConversionOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  applyWindowLevel?: boolean;
+}
 
 export class DicomConverterService {
   /**
    * Convert DICOM buffer to PNG buffer using dicom-parser and pngjs
+   * Optimized for large mammogram images
    */
-  async convertToPNG(dicomBuffer: Buffer): Promise<Buffer> {
+  async convertToPNG(dicomBuffer: Buffer, options: ConversionOptions = {}): Promise<Buffer> {
     console.log('[DicomConverter] ========== START CONVERSION ==========');
     console.log('[DicomConverter] Buffer size:', dicomBuffer.length, 'bytes');
 
@@ -119,8 +128,26 @@ export class DicomConverterService {
       }
 
       console.log('[DicomConverter] Step 6: Packing PNG...');
-      const pngBuffer = PNG.sync.write(png);
+      let pngBuffer = PNG.sync.write(png);
       console.log('[DicomConverter] PNG buffer created, size:', pngBuffer.length, 'bytes');
+      
+      // Step 7: Optimize for large images
+      const { maxWidth = 2048, maxHeight = 2048 } = options;
+      if (columns > maxWidth || rows > maxHeight) {
+        console.log('[DicomConverter] Step 7: Resizing large image for optimal viewing...');
+        console.log(`[DicomConverter] Original: ${columns}x${rows}, Target max: ${maxWidth}x${maxHeight}`);
+        
+        pngBuffer = await sharp(pngBuffer)
+          .resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        
+        console.log('[DicomConverter] Resized PNG size:', pngBuffer.length, 'bytes');
+      }
+      
       console.log('[DicomConverter] ========== CONVERSION COMPLETE ==========');
 
       return pngBuffer;

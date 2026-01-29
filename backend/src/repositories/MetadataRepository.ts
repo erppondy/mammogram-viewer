@@ -76,15 +76,20 @@ export class MetadataRepository {
       imageId: row.image_id,
       patientId: row.patient_id,
       patientName: row.patient_name,
+      patientBirthDate: row.patient_birth_date,
+      patientSex: row.patient_sex,
+      patientAge: row.patient_age,
       studyDate: row.study_date,
       studyDescription: row.study_description,
       modality: row.modality,
+      institutionName: row.institution_name,
       imageWidth: row.image_width,
       imageHeight: row.image_height,
       bitDepth: row.bit_depth,
       colorSpace: row.color_space,
       dicomTags: row.dicom_tags,
       customTags: row.custom_tags,
+      metadataSource: row.metadata_source,
     };
   }
 }

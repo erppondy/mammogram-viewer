@@ -8,7 +8,7 @@ const poolConfig: PoolConfig = {
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'mammogram_viewer',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  password: process.env.DB_PASSWORD || 'Root1234#$',
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

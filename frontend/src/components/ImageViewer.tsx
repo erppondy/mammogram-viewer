@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 interface ImageViewerProps {
@@ -9,6 +10,7 @@ interface ImageViewerProps {
 }
 
 export default function ImageViewer({ imageId, filename, format, onClose }: ImageViewerProps) {
+  const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [metadata, setMetadata] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,28 @@ export default function ImageViewer({ imageId, filename, format, onClose }: Imag
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      const response = await api.get(`/images/${imageId}/download`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download image');
+    }
+  };
+
+  const handleAnnotate = () => {
+    navigate(`/annotate/${imageId}`);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
       {/* Header */}
@@ -96,27 +120,41 @@ export default function ImageViewer({ imageId, filename, format, onClose }: Imag
       </div>
 
       {/* Toolbar */}
-      <div className="bg-gray-800 text-white p-2 flex gap-2 items-center justify-center">
-        <button
-          onClick={handleZoomOut}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
-        >
-          −
-        </button>
-        <span className="px-3 py-1 bg-gray-700 rounded min-w-[80px] text-center">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          onClick={handleZoomIn}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
-        >
-          +
-        </button>
+      <div className="bg-gray-800 text-white p-2 flex gap-2 items-center justify-center flex-wrap">
+        <div className="flex gap-1 items-center">
+          <button
+            onClick={handleZoomOut}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+          >
+            −
+          </button>
+          <span className="px-3 py-1 bg-gray-700 rounded min-w-[80px] text-center text-sm">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+          >
+            +
+          </button>
+        </div>
         <button
           onClick={handleResetZoom}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded ml-2"
+          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm"
         >
-          Reset
+          Reset View
+        </button>
+        <button
+          onClick={handleDownload}
+          className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm"
+        >
+          📥 Download
+        </button>
+        <button
+          onClick={handleAnnotate}
+          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+        >
+          ✏️ Annotate
         </button>
       </div>
 
@@ -207,7 +245,7 @@ export default function ImageViewer({ imageId, filename, format, onClose }: Imag
 
       {/* Instructions */}
       <div className="bg-gray-800 text-gray-400 text-xs p-2 text-center">
-        Use mouse wheel or +/− buttons to zoom • Click and drag to pan • ESC to close
+        🖱️ Click and drag to pan • 🔍 Mouse wheel or +/− to zoom • 📥 Download button to save • ✏️ Annotate button to add annotations • ESC to close
       </div>
     </div>
   );

@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { authService, User } from '../services/authService';
+import { authService, User, LicenseStatus } from '../services/authService';
 import UploadSection from '../components/UploadSection';
 import ImageGallery from '../components/ImageGallery';
-import { MedicalHeader, MedicalButton, StatusBadge } from '../components/MedicalUI';
+import { MedicalHeader, MedicalButton } from '../components/MedicalUI';
+import UserProfileButton from '../components/UserProfileButton';
+import ActionCard from '../components/ActionCard';
+import GradientButton from '../components/GradientButton';
+
+type ViewMode = 'cards' | 'upload' | 'gallery';
 
 export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [user, setUser] = useState<User | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
+  const [isLoadingLicense, setIsLoadingLicense] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -21,8 +29,29 @@ export default function DashboardPage() {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    const fetchLicenseStatus = async () => {
+      try {
+        setIsLoadingLicense(true);
+        const status = await authService.getLicenseStatus();
+        setLicenseStatus(status);
+      } catch (error) {
+        console.error('Failed to fetch license status:', error);
+        // If license fetch fails, assume no license (regular user)
+        setLicenseStatus({ hasLicense: false, license: null });
+      } finally {
+        setIsLoadingLicense(false);
+      }
+    };
+    fetchLicenseStatus();
+  }, []);
+
   const handleUploadComplete = () => {
-    setRefreshKey((prev) => prev + 1);
+    // Small delay to ensure backend has finished processing
+    setTimeout(() => {
+      setRefreshKey((prev) => prev + 1);
+      setViewMode('gallery');
+    }, 500);
   };
 
   const handleLogout = () => {
@@ -33,7 +62,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] medical-grid-bg">
-      <MedicalHeader title="Mammogram Viewer">
+      <MedicalHeader title="Mammogram X-Ray Screener">
         <>
           {isAdmin && (
             <Link to="/admin" className="mr-4">
@@ -53,15 +82,8 @@ export default function DashboardPage() {
           )}
           {user && (
             <>
-              <div className="flex flex-col items-end mr-4 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                <div className="text-sm font-bold text-[var(--medical-primary)] mb-1" style={{
-                  textShadow: '0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3)'
-                }}>
-                  {user.fullName}
-                </div>
-                {isAdmin && (
-                  <StatusBadge status="active" label="Admin" size="sm" />
-                )}
+              <div className="mr-4">
+                <UserProfileButton username={user.fullName} isAdmin={!!isAdmin} />
               </div>
               <MedicalButton 
                 onClick={handleLogout} 
@@ -81,8 +103,78 @@ export default function DashboardPage() {
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-8">
-        <UploadSection onUploadComplete={handleUploadComplete} />
-        <ImageGallery key={refreshKey} />
+        {viewMode === 'cards' && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <h2 className="text-3xl font-bold text-[var(--medical-primary)] mb-8 text-center" style={{
+              textShadow: '0 0 20px rgba(0, 212, 255, 0.5)'
+            }}>
+              What would you like to do?
+            </h2>
+            <div className="flex flex-wrap gap-8 justify-center">
+              {/* Hide upload for ambulance doctors - they only annotate */}
+              {user?.ambulanceRole !== 'doctor' && (
+                <ActionCard
+                  title="Upload Images"
+                  description="Upload new X-ray images for analysis and storage. Supports DICOM, PNG, JPG formats."
+                  icon={
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  }
+                  onClick={() => setViewMode('upload')}
+                  actionText="Start Upload"
+                />
+              )}
+              <ActionCard
+                title="View Gallery"
+                description="Browse and manage your uploaded X-ray images. View, download, and organize your files."
+                icon={
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                }
+                onClick={() => setViewMode('gallery')}
+                actionText="View Images"
+              />
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'upload' && user?.ambulanceRole !== 'doctor' && (
+          <div>
+            <div className="mb-6">
+              <GradientButton
+                onClick={() => setViewMode('cards')}
+                variant="secondary"
+                size="sm"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Menu
+              </GradientButton>
+            </div>
+            <UploadSection onUploadComplete={handleUploadComplete} />
+          </div>
+        )}
+
+        {viewMode === 'gallery' && (
+          <div>
+            <div className="mb-6">
+              <GradientButton
+                onClick={() => setViewMode('cards')}
+                variant="secondary"
+                size="sm"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Menu
+              </GradientButton>
+            </div>
+            <ImageGallery key={refreshKey} />
+          </div>
+        )}
       </main>
     </div>
   );

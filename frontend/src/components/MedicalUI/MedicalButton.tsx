@@ -1,4 +1,5 @@
 import { ReactNode, ButtonHTMLAttributes } from 'react';
+import './MedicalButton.css';
 
 interface MedicalButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -19,26 +20,30 @@ export default function MedicalButton({
   className = '',
   ...props 
 }: MedicalButtonProps) {
-  const variantClass = variant === 'secondary' 
-    ? 'medical-button-secondary' 
-    : variant === 'danger'
-    ? 'medical-button-danger'
-    : 'medical-button';
-  
   const sizeClass = size === 'sm' 
-    ? 'text-xs py-2 px-4' 
+    ? 'btn-sm' 
     : size === 'lg'
-    ? 'text-base py-4 px-8'
-    : '';
+    ? 'btn-lg'
+    : 'btn-md';
+  
+  const variantClass = variant === 'secondary' 
+    ? 'gradient-btn-secondary' 
+    : variant === 'danger'
+    ? 'gradient-btn-danger'
+    : 'gradient-btn-primary';
   
   return (
-    <button 
-      className={`${variantClass} ${fullWidth ? 'w-full' : ''} ${sizeClass} ${className} flex items-center justify-center gap-2`}
-      {...props}
-    >
-      {icon && iconPosition === 'left' && <span className="inline-flex">{icon}</span>}
-      <span>{children}</span>
-      {icon && iconPosition === 'right' && <span className="inline-flex">{icon}</span>}
-    </button>
+    <div className={`gradient-button-container ${fullWidth ? 'w-full' : ''}`}>
+      <div className={`gradient-container ${variantClass}`}>
+        <button 
+          className={`gradient-button ${sizeClass} ${className}`}
+          {...props}
+        >
+          {icon && iconPosition === 'left' && <span className="inline-flex">{icon}</span>}
+          <span>{children}</span>
+          {icon && iconPosition === 'right' && <span className="inline-flex">{icon}</span>}
+        </button>
+      </div>
+    </div>
   );
 }

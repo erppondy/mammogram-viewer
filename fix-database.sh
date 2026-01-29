@@ -28,7 +28,7 @@ if [ ! -f backend/.env ]; then
 fi
 
 # Update password in .env
-sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=postgres/' backend/.env
+sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=Root1234#$/' backend/.env
 
 echo ""
 echo "5. Setting up database tables..."

@@ -1,5 +1,6 @@
-export type UserRole = 'user' | 'super_admin';
+export type UserRole = 'user' | 'doctor' | 'super_admin';
 export type UserStatus = 'pending' | 'approved' | 'rejected' | 'deactivated';
+export type AmbulanceRole = 'operator' | 'supervisor' | 'admin' | 'doctor';
 
 export interface User {
   id: string;
@@ -13,6 +14,8 @@ export interface User {
   approvedBy: string | null;
   approvedAt: Date | null;
   rejectionReason: string | null;
+  licenseId: string | null;
+  ambulanceRole: AmbulanceRole | null;
   createdAt: Date;
   lastLoginAt: Date | null;
 }
@@ -24,13 +27,18 @@ export interface CreateUserDTO {
   professionalCredentials?: string;
   role?: UserRole;
   status?: UserStatus;
+  licenseId?: string;
+  ambulanceRole?: AmbulanceRole;
 }
 
 export interface UpdateUserDTO {
+  email?: string;
   fullName?: string;
   professionalCredentials?: string;
   isVerified?: boolean;
   lastLoginAt?: Date;
+  licenseId?: string;
+  ambulanceRole?: AmbulanceRole;
 }
 
 export interface UserResponse {
@@ -44,6 +52,8 @@ export interface UserResponse {
   approvedBy: string | null;
   approvedAt: Date | null;
   rejectionReason: string | null;
+  licenseId: string | null;
+  ambulanceRole: AmbulanceRole | null;
   createdAt: Date;
   lastLoginAt: Date | null;
 }
@@ -63,6 +73,8 @@ export function toUserResponse(user: User): UserResponse {
     approvedBy: user.approvedBy,
     approvedAt: user.approvedAt,
     rejectionReason: user.rejectionReason,
+    licenseId: user.licenseId,
+    ambulanceRole: user.ambulanceRole,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };

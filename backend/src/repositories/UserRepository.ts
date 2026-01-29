@@ -7,8 +7,8 @@ export class UserRepository {
    */
   async create(userData: CreateUserDTO & { passwordHash: string }): Promise<User> {
     const result = await query(
-      `INSERT INTO users (email, password_hash, full_name, professional_credentials, role, status)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO users (email, password_hash, full_name, professional_credentials, role, status, license_id, ambulance_role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         userData.email,
@@ -17,6 +17,8 @@ export class UserRepository {
         userData.professionalCredentials || null,
         userData.role || 'user',
         userData.status || 'pending',
+        userData.licenseId || null,
+        userData.ambulanceRole || null,
       ]
     );
 
@@ -56,6 +58,11 @@ export class UserRepository {
     const fields: string[] = [];
     const values: any[] = [];
     let paramCount = 1;
+
+    if (updates.email !== undefined) {
+      fields.push(`email = $${paramCount++}`);
+      values.push(updates.email);
+    }
 
     if (updates.fullName !== undefined) {
       fields.push(`full_name = $${paramCount++}`);
@@ -119,6 +126,13 @@ export class UserRepository {
   }
 
   /**
+   * Update user password
+   */
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
+  }
+
+  /**
    * Get all users (for admin purposes)
    */
   async findAll(limit: number = 100, offset: number = 0): Promise<User[]> {
@@ -139,6 +153,122 @@ export class UserRepository {
   }
 
   /**
+   * Find users by license ID
+   */
+  async findByLicenseId(licenseId: string, limit: number = 100, offset: number = 0): Promise<User[]> {
+    const result = await query(
+      'SELECT * FROM users WHERE license_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [licenseId, limit, offset]
+    );
+
+    return result.rows.map((row) => this.mapRowToUser(row));
+  }
+
+  /**
+   * Count users by license ID
+   */
+  async countByLicenseId(licenseId: string): Promise<number> {
+    const result = await query('SELECT COUNT(*) as count FROM users WHERE license_id = $1', [
+      licenseId,
+    ]);
+    return parseInt(result.rows[0].count);
+  }
+
+  /**
+   * Associate user with a license
+   */
+  async associateWithLicense(
+    userId: string,
+    licenseId: string,
+    ambulanceRole?: string
+  ): Promise<User | null> {
+    const result = await query(
+      `UPDATE users 
+       SET license_id = $1, ambulance_role = $2 
+       WHERE id = $3 
+       RETURNING *`,
+      [licenseId, ambulanceRole || null, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToUser(result.rows[0]);
+  }
+
+  /**
+   * Remove license association from user
+   */
+  async removeLicenseAssociation(userId: string): Promise<User | null> {
+    const result = await query(
+      `UPDATE users 
+       SET license_id = NULL, ambulance_role = NULL 
+       WHERE id = $1 
+       RETURNING *`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToUser(result.rows[0]);
+  }
+
+  /**
+   * Update ambulance role for a user
+   */
+  async updateAmbulanceRole(userId: string, ambulanceRole: string): Promise<User | null> {
+    const result = await query(
+      `UPDATE users 
+       SET ambulance_role = $1 
+       WHERE id = $2 
+       RETURNING *`,
+      [ambulanceRole, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToUser(result.rows[0]);
+  }
+
+  /**
+   * Count active users by license ID (logged in within last 30 days)
+   */
+  async countActiveUsersByLicenseId(licenseId: string): Promise<number> {
+    const result = await query(
+      `SELECT COUNT(*) as count FROM users 
+       WHERE license_id = $1 
+       AND last_login_at > NOW() - INTERVAL '30 days'`,
+      [licenseId]
+    );
+    return parseInt(result.rows[0].count);
+  }
+
+  /**
+   * Find all users with licenses (ambulance users)
+   */
+  async findAllAmbulanceUsers(limit: number = 100, offset: number = 0): Promise<User[]> {
+    const result = await query(
+      'SELECT * FROM users WHERE license_id IS NOT NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      [limit, offset]
+    );
+
+    return result.rows.map((row) => this.mapRowToUser(row));
+  }
+
+  /**
+   * Count all ambulance users
+   */
+  async countAmbulanceUsers(): Promise<number> {
+    const result = await query('SELECT COUNT(*) as count FROM users WHERE license_id IS NOT NULL');
+    return parseInt(result.rows[0].count);
+  }
+
+  /**
    * Map database row to User model
    */
   private mapRowToUser(row: any): User {
@@ -154,6 +284,8 @@ export class UserRepository {
       approvedBy: row.approved_by,
       approvedAt: row.approved_at,
       rejectionReason: row.rejection_reason,
+      licenseId: row.license_id || null,
+      ambulanceRole: row.ambulance_role || null,
       createdAt: row.created_at,
       lastLoginAt: row.last_login_at,
     };

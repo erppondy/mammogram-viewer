@@ -11,12 +11,12 @@
   --medical-accent: #ff3366;
   --medical-warning: #ffaa00;
   
-  /* Dark Theme Base */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1a2332;
-  --bg-card: #141b2d;
-  --bg-hover: #1e2a3f;
+  /* Dark Theme Base - Pure Black */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1a1a1a;
+  --bg-card: #0f0f0f;
+  --bg-hover: #1f1f1f;
   
   /* Text Colors */
   --text-primary: #e5e7eb;
@@ -501,7 +501,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  border-radius: 25px;
+  border-radius: 12px;
   padding: 0.6em;
   border: none;
   outline: none;
@@ -578,8 +578,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .button3:hover {
-  background-image: linear-gradient(163deg, #a00000fa 0%, #d10050 100%);
+  background-image: linear-gradient(163deg, #00d4ff 0%, #3700ff 100%);
   color: rgb(255, 255, 255);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
 }
 
 .card {

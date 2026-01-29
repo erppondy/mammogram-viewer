@@ -2,16 +2,16 @@ import { analyticsRepository } from '../repositories/AnalyticsRepository';
 
 class AnalyticsService {
   // Track image view
-  async trackImageView(imageId: number, userId: number, viewDuration?: number): Promise<void> {
+  async trackImageView(imageId: string, userId: string, viewDuration?: number): Promise<void> {
     await analyticsRepository.trackImageView(imageId, userId, viewDuration);
   }
 
   // Track user activity
   async trackActivity(
-    userId: number,
+    userId: string,
     activityType: 'login' | 'upload' | 'view' | 'download' | 'delete' | 'update',
     resourceType?: string,
-    resourceId?: number,
+    resourceId?: string,
     metadata?: any,
     ipAddress?: string,
     userAgent?: string

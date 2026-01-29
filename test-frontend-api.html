@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Shared Images API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            margin: 5px;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .info {
+            color: #2196F3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .image-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            background: white;
+        }
+        .image-card h4 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        .image-card p {
+            margin: 3px 0;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Shared Images API</h1>
+        
+        <div class="section">
+            <h3>Step 1: Login</h3>
+            <p>Enter credentials for a user with a license:</p>
+            <input type="email" id="email" placeholder="Email (e.g., john@test.com)" value="john@test.com">
+            <input type="password" id="password" placeholder="Password" value="">
+            <br>
+            <button onclick="login()">Login</button>
+            <div id="loginResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 2: Get Images</h3>
+            <p>Fetch images using the /images/by-patient endpoint:</p>
+            <button onclick="getImages()" id="getImagesBtn" disabled>Get Images</button>
+            <button onclick="getImagesRaw()">Get Images (Raw API)</button>
+            <div id="imagesResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 3: Check Token</h3>
+            <button onclick="checkToken()">Check Current Token</button>
+            <button onclick="clearToken()">Clear Token</button>
+            <div id="tokenResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.style.display = 'block';
+            element.className = 'result ' + type;
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('loginResult', '❌ Please enter email and password', 'error');
+                return;
+            }
+
+            try {
+                showResult('loginResult', '⏳ Logging in...', 'info');
+
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('getImagesBtn').disabled = false;
+                    
+                    let html = '<div class="success">✅ Login Successful!</div>';
+                    html += '<p><strong>User:</strong> ' + data.user.email + '</p>';
+                    html += '<p><strong>Name:</strong> ' + data.user.fullName + '</p>';
+                    html += '<p><strong>Role:</strong> ' + data.user.role + '</p>';
+                    
+                    if (data.license) {
+                        html += '<p><strong>License:</strong> ' + data.license.ambulanceName + '</p>';
+                        html += '<p><strong>License ID:</strong> ' + data.license.licenseId + '</p>';
+                        html += '<p><strong>Quota:</strong> ' + data.license.uploadsUsed + ' / ' + data.license.uploadQuota + '</p>';
+                    } else {
+                        html += '<p class="error">⚠️ No license associated with this user</p>';
+                    }
+                    
+                    html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    showResult('loginResult', html, 'success');
+                } else {
+                    showResult('loginResult', '❌ Login Failed: ' + (data.error?.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showResult('loginResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function getImages() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('imagesResult', '❌ Not logged in. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                showResult('imagesResult', '⏳ Fetching images...', 'info');
+
+                const response = await fetch(`${API_URL}/images/by-patient`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = '<div class="success">✅ Images Retrieved Successfully!</div>';
+                    html += '<p><strong>Total Folders:</strong> ' + (data.patients?.length || 0) + '</p>';
+                    
+                    const totalImages = data.patients?.reduce((sum, p) => sum + p.imageCount, 0) || 0;
+                    html += '<p><strong>Total Images:</strong> ' + totalImages + '</p>';
+                    
+                    if (data.patients && data.patients.length > 0) {
+                        html += '<h4>Patient Folders:</h4>';
+                        html += '<div class="image-list">';
+                        
+                        data.patients.forEach(patient => {
+                            html += '<div class="image-card">';
+                            html += '<h4>📁 ' + patient.folder + '</h4>';
+                            html += '<p><strong>Patient:</strong> ' + (patient.patientName || 'N/A') + '</p>';
+                            html += '<p><strong>ID:</strong> ' + (patient.patientId || 'N/A') + '</p>';
+                            html += '<p><strong>Images:</strong> ' + patient.imageCount + '</p>';
+                            html += '<ul style="font-size: 10px; margin: 5px 0; padding-left: 15px;">';
+                            patient.images.forEach(img => {
+                                html += '<li>' + img.originalFilename + '</li>';
+                            });
+                            html += '</ul>';
+                            html += '</div>';
+                        });
+                        
+                        html += '</div>';
+                    } else {
+                        html += '<p class="error">⚠️ No images found</p>';
+                    }
+                    
+                    html += '<details><summary>Raw JSON Response</summary><pre>' + JSON.stringify(data, null, 2) + '</pre></details>';
+                    showResult('imagesResult', html, 'success');
+                } else {
+                    showResult('imagesResult', '❌ Failed: ' + (data.error?.message || 'Unknown error') + '<pre>' + JSON.stringify(data, null, 2) + '</pre>', 'error');
+                }
+            } catch (error) {
+                showResult('imagesResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function getImagesRaw() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('imagesResult', '❌ Not logged in. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                showResult('imagesResult', '⏳ Fetching images (raw)...', 'info');
+
+                const response = await fetch(`${API_URL}/images/by-patient`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                    },
+                });
+
+                const data = await response.json();
+                
+                let html = '<h4>Raw API Response:</h4>';
+                html += '<p><strong>Status:</strong> ' + response.status + ' ' + response.statusText + '</p>';
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                showResult('imagesResult', html, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResult('imagesResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function checkToken() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showResult('tokenResult', '❌ No token found. Please login.', 'error');
+                return;
+            }
+
+            try {
+                const parts = token.split('.');
+                const payload = JSON.parse(atob(parts[1]));
+                
+                let html = '<div class="success">✅ Token Found</div>';
+                html += '<p><strong>User ID:</strong> ' + payload.userId + '</p>';
+                html += '<p><strong>Email:</strong> ' + payload.email + '</p>';
+                html += '<p><strong>Role:</strong> ' + payload.role + '</p>';
+                html += '<p><strong>Status:</strong> ' + payload.status + '</p>';
+                
+                const exp = new Date(payload.exp * 1000);
+                const now = new Date();
+                const isExpired = exp < now;
+                
+                html += '<p><strong>Expires:</strong> ' + exp.toLocaleString() + '</p>';
+                html += '<p><strong>Expired:</strong> ' + (isExpired ? '❌ YES' : '✅ NO') + '</p>';
+                
+                html += '<details><summary>Full Token Payload</summary><pre>' + JSON.stringify(payload, null, 2) + '</pre></details>';
+                
+                showResult('tokenResult', html, isExpired ? 'error' : 'success');
+            } catch (error) {
+                showResult('tokenResult', '❌ Invalid token: ' + error.message, 'error');
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('token');
+            document.getElementById('getImagesBtn').disabled = true;
+            showResult('tokenResult', '✅ Token cleared. Please login again.', 'info');
+        }
+
+        // Check if already logged in
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('getImagesBtn').disabled = false;
+                showResult('tokenResult', '✅ Found existing token. You can get images or check token details.', 'success');
+            }
+        };
+    </script>
+</body>
+</html>

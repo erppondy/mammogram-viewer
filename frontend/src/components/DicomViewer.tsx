@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 interface DicomViewerProps {
@@ -8,6 +9,7 @@ interface DicomViewerProps {
 }
 
 export default function DicomViewer({ imageId, filename, onClose }: DicomViewerProps) {
+  const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,6 +18,9 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [invert, setInvert] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     loadDicomPreview();
@@ -103,6 +108,34 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
     setBrightness(100);
     setContrast(100);
     setInvert(false);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
   };
   const handleDownload = async () => {
     try {
@@ -120,6 +153,10 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
     } catch (err) {
       alert('Failed to download DICOM file');
     }
+  };
+
+  const handleAnnotate = () => {
+    navigate(`/annotate/${imageId}`);
   };
 
   return (
@@ -159,12 +196,20 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
         </div>
         <button onClick={() => setInvert(!invert)} className={`px-3 py-1 rounded text-sm ${invert ? 'bg-blue-600' : 'bg-gray-700'}`}>Invert</button>
         <button onClick={handleReset} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">Reset</button>
-        <button onClick={handleDownload} className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm">Download DICOM</button>
+        <button onClick={handleDownload} className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm">📥 Download DICOM</button>
+        <button onClick={handleAnnotate} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm">✏️ Annotate</button>
       </div>
 
       {/* Viewer Container */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex items-center justify-center bg-black overflow-hidden relative">
+        <div 
+          className="flex-1 flex items-center justify-center bg-black overflow-hidden relative cursor-move"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
           {loading && (
             <div className="text-white text-center">
               <div className="text-2xl mb-2">Loading DICOM...</div>
@@ -195,12 +240,14 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
                 onError={(e) => console.error('Image failed to load:', e)}
                 className="max-w-full max-h-full"
                 style={{
-                  transform: `scale(${zoom})`,
+                  transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
                   objectFit: 'contain',
                   filter: `brightness(${brightness}%) contrast(${contrast}%) ${invert ? 'invert(1)' : ''}`,
                   imageRendering: 'auto',
                   display: 'block',
+                  userSelect: 'none',
                 }}
+                draggable={false}
               />
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-10">
                 <p className="text-sm">📋 DICOM Image (732x896) • Use controls to adjust view</p>
@@ -214,6 +261,9 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
           <div className="w-80 bg-gray-900 text-white p-4 overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">DICOM Metadata</h3>
             <div className="space-y-3 text-sm">
+              <div className="pb-2 border-b border-gray-700">
+                <h4 className="text-blue-400 font-semibold mb-2">Patient Information</h4>
+              </div>
               {metadata.patientName && (
                 <div>
                   <span className="text-gray-400 block">Patient Name:</span>
@@ -226,6 +276,32 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
                   <div className="text-white font-medium">{metadata.patientId}</div>
                 </div>
               )}
+              {metadata.patientBirthDate && (
+                <div>
+                  <span className="text-gray-400 block">Birth Date:</span>
+                  <div className="text-white font-medium">
+                    {new Date(metadata.patientBirthDate).toLocaleDateString()}
+                  </div>
+                </div>
+              )}
+              {metadata.patientSex && (
+                <div>
+                  <span className="text-gray-400 block">Sex:</span>
+                  <div className="text-white font-medium">
+                    {metadata.patientSex === 'M' ? 'Male' : metadata.patientSex === 'F' ? 'Female' : metadata.patientSex}
+                  </div>
+                </div>
+              )}
+              {metadata.patientAge && (
+                <div>
+                  <span className="text-gray-400 block">Age:</span>
+                  <div className="text-white font-medium">{metadata.patientAge}</div>
+                </div>
+              )}
+              
+              <div className="pt-2 pb-2 border-b border-gray-700">
+                <h4 className="text-blue-400 font-semibold mb-2">Study Information</h4>
+              </div>
               {metadata.studyDate && (
                 <div>
                   <span className="text-gray-400 block">Study Date:</span>
@@ -246,6 +322,16 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
                   <div className="text-white font-medium">{metadata.studyDescription}</div>
                 </div>
               )}
+              {metadata.institutionName && (
+                <div>
+                  <span className="text-gray-400 block">Institution:</span>
+                  <div className="text-white font-medium">{metadata.institutionName}</div>
+                </div>
+              )}
+              
+              <div className="pt-2 pb-2 border-b border-gray-700">
+                <h4 className="text-blue-400 font-semibold mb-2">Image Information</h4>
+              </div>
               {metadata.imageWidth && metadata.imageHeight && (
                 <div>
                   <span className="text-gray-400 block">Dimensions:</span>
@@ -258,6 +344,14 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
                 <div>
                   <span className="text-gray-400 block">Bit Depth:</span>
                   <div className="text-white font-medium">{metadata.bitDepth} bits</div>
+                </div>
+              )}
+              {metadata.metadataSource && (
+                <div>
+                  <span className="text-gray-400 block">Metadata Source:</span>
+                  <div className="text-white font-medium">
+                    {metadata.metadataSource === 'dicom' ? '📋 DICOM File' : '✍️ Manual Entry'}
+                  </div>
                 </div>
               )}
               <div className="pt-3 border-t border-gray-700">
@@ -276,7 +370,7 @@ export default function DicomViewer({ imageId, filename, onClose }: DicomViewerP
 
       {/* Instructions */}
       <div className="bg-gray-800 text-gray-400 text-xs p-2 text-center">
-        DICOM Preview • Use controls to adjust view • Download original file for professional DICOM software • ESC to close
+        🖱️ Click and drag to pan • 🔍 Mouse wheel or +/− to zoom • 📥 Download DICOM • ✏️ Annotate • Adjust brightness/contrast • ESC to close
       </div>
     </div>
   );

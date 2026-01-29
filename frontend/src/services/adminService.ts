@@ -11,6 +11,8 @@ export interface UserResponse {
   approvedBy: string | null;
   approvedAt: string | null;
   rejectionReason: string | null;
+  licenseId: string | null;
+  ambulanceRole: string | null;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -27,6 +29,7 @@ export interface UserFilters {
   status?: 'pending' | 'approved' | 'rejected' | 'deactivated';
   role?: 'user' | 'super_admin';
   search?: string;
+  licenseId?: string;
 }
 
 class AdminService {
@@ -35,6 +38,7 @@ class AdminService {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.role) params.append('role', filters.role);
     if (filters?.search) params.append('search', filters.search);
+    if (filters?.licenseId) params.append('licenseId', filters.licenseId);
 
     const queryString = params.toString();
     const url = `/admin/users${queryString ? `?${queryString}` : ''}`;
@@ -70,6 +74,30 @@ class AdminService {
 
   async getStats(): Promise<SystemStats> {
     const response = await api.get('/admin/stats');
+    return response.data;
+  }
+
+  async assignUserToLicense(userId: string, licenseId: string, ambulanceRole: string): Promise<void> {
+    await api.put(`/admin/users/${userId}/assign-license`, { licenseId, ambulanceRole });
+  }
+
+  async unassignUserFromLicense(userId: string): Promise<void> {
+    await api.put(`/admin/users/${userId}/unassign-license`);
+  }
+
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    await api.put(`/admin/users/${userId}/reset-password`, { newPassword });
+  }
+
+  async getImagesByLicense(licenseId: string, limit?: number, offset?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
+
+    const queryString = params.toString();
+    const url = `/admin/images/by-license/${licenseId}${queryString ? `?${queryString}` : ''}`;
+
+    const response = await api.get(url);
     return response.data;
   }
 }

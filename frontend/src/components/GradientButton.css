@@ -1,0 +1,152 @@
+/* From Uiverse.io by Spacious74 - Universal Gradient Button Styles */
+
+.gradient-btn-wrapper {
+  display: inline-block;
+}
+
+.gradient-btn-wrapper.w-full {
+  display: block;
+}
+
+.gradient-btn-container {
+  position: relative;
+  padding: 3px;
+  border-radius: 0.9em;
+  transition: all 0.4s ease;
+}
+
+/* Variant gradients */
+.gradient-btn-primary {
+  background: linear-gradient(90deg, #03a9f4, #f441a5);
+}
+
+.gradient-btn-secondary {
+  background: linear-gradient(90deg, #4b5563, #6b7280);
+}
+
+.gradient-btn-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.gradient-btn-success {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.gradient-btn-info {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.gradient-btn-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 0.9em;
+  z-index: -10;
+  filter: blur(0);
+  transition: filter 0.4s ease;
+}
+
+.gradient-btn-container:hover::before {
+  filter: blur(1.2em);
+}
+
+.gradient-btn-primary:hover::before {
+  background: linear-gradient(90deg, #03a9f4, #f441a5);
+}
+
+.gradient-btn-secondary:hover::before {
+  background: linear-gradient(90deg, #4b5563, #6b7280);
+}
+
+.gradient-btn-danger:hover::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.gradient-btn-success:hover::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.gradient-btn-info:hover::before {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.gradient-btn-container:active::before {
+  filter: blur(0.2em);
+}
+
+.gradient-btn {
+  border-radius: 0.7em;
+  border: none;
+  background-color: #000;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 2px 2px 3px #000000b4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-weight: 500;
+  width: 100%;
+}
+
+.gradient-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 5px #000000b4;
+}
+
+.gradient-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 1px 1px 2px #000000b4;
+}
+
+.gradient-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Size variants */
+.btn-size-xs {
+  font-size: 0.75em;
+  padding: 0.4em 0.6em;
+}
+
+.btn-size-sm {
+  font-size: 0.875em;
+  padding: 0.5em 0.7em;
+}
+
+.btn-size-md {
+  font-size: 1em;
+  padding: 0.6em 0.8em;
+}
+
+.btn-size-lg {
+  font-size: 1.2em;
+  padding: 0.7em 1em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .btn-size-xs {
+    font-size: 0.7em;
+    padding: 0.35em 0.5em;
+  }
+  
+  .btn-size-sm {
+    font-size: 0.8em;
+    padding: 0.4em 0.6em;
+  }
+  
+  .btn-size-md {
+    font-size: 0.9em;
+    padding: 0.5em 0.7em;
+  }
+  
+  .btn-size-lg {
+    font-size: 1em;
+    padding: 0.6em 0.8em;
+  }
+}

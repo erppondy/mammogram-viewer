@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { analyticsService, DashboardMetrics, ImageStatistics } from '../services/analyticsService';
 import CustomLoader from '../components/CustomLoader';
+import GradientButton from '../components/GradientButton';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -160,24 +161,27 @@ export default function AnalyticsDashboardPage() {
             <p className="text-sm text-gray-600">System performance and usage metrics</p>
           </div>
           <div className="flex gap-4">
-            <button
+            <GradientButton
               onClick={() => navigate('/admin')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              variant="info"
+              size="sm"
             >
               Admin Dashboard
-            </button>
-            <button
+            </GradientButton>
+            <GradientButton
               onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              variant="secondary"
+              size="sm"
             >
               My Images
-            </button>
-            <button
+            </GradientButton>
+            <GradientButton
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              variant="danger"
+              size="sm"
             >
               Logout
-            </button>
+            </GradientButton>
           </div>
         </div>
       </header>
@@ -186,17 +190,14 @@ export default function AnalyticsDashboardPage() {
         {/* Time Range Selector */}
         <div className="mb-6 flex gap-2">
           {[7, 14, 30, 60, 90].map((d) => (
-            <button
+            <GradientButton
               key={d}
               onClick={() => setDays(d)}
-              className={`px-4 py-2 rounded ${
-                days === d
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
+              variant={days === d ? 'primary' : 'secondary'}
+              size="sm"
             >
               {d} Days
-            </button>
+            </GradientButton>
           ))}
         </div>
 

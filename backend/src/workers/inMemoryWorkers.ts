@@ -14,7 +14,7 @@ const THUMBNAIL_SIZE = 200;
 
 // DICOM Conversion Processor
 const processDicomConversion = async (job: any) => {
-  const { imageId, filePath, originalName } = job.data;
+  const { imageId, filePath } = job.data;
 
   console.log(`Processing DICOM conversion for image ${imageId}`);
 
@@ -26,7 +26,10 @@ const processDicomConversion = async (job: any) => {
     }
 
     // Convert DICOM to PNG
-    const pngPath = await dicomConverterService.convertDicomToPng(filePath);
+    const fileBuffer = await fs.readFile(filePath);
+    const pngBuffer = await dicomConverterService.convertToPNG(fileBuffer);
+    const pngPath = filePath.replace(/\.(dcm|dicom)$/i, '.png');
+    await fs.writeFile(pngPath, pngBuffer);
 
     // Update image record with converted path
     await imageRepository.updateConvertedPath(imageId, pngPath);

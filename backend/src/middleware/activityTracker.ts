@@ -3,21 +3,21 @@ import { analyticsService } from '../services/AnalyticsService';
 
 // Middleware to track user activity
 export const trackActivity = (activityType: string, resourceType?: string) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
       if (!user) {
         return next();
       }
 
-      const resourceId = req.params.id ? parseInt(req.params.id) : undefined;
+      const resourceId = req.params.id || undefined;
       const ipAddress = req.ip || req.socket.remoteAddress;
       const userAgent = req.get('user-agent');
 
       // Track activity asynchronously (don't wait for it)
       analyticsService
         .trackActivity(
-          user.userId,
+          user.id,
           activityType as any,
           resourceType,
           resourceId,
@@ -43,14 +43,14 @@ export const trackActivity = (activityType: string, resourceType?: string) => {
 };
 
 // Middleware to track image views
-export const trackImageView = async (req: Request, res: Response, next: NextFunction) => {
+export const trackImageView = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const user = (req as any).user;
-    const imageId = parseInt(req.params.id);
+    const imageId = req.params.id;
 
     if (user && imageId) {
       // Track view asynchronously
-      analyticsService.trackImageView(imageId, user.userId).catch((error) => {
+      analyticsService.trackImageView(imageId, user.id).catch((error) => {
         console.error('Failed to track image view:', error);
       });
     }

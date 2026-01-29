@@ -30,7 +30,7 @@ services:
       DB_PORT: 5432
       DB_NAME: mammogram_viewer
       DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_PASSWORD: Root1234#$
       JWT_SECRET: ${JWT_SECRET}
       STORAGE_ROOT: /app/storage
       CORS_ORIGIN: http://localhost:5173

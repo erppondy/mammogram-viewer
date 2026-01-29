@@ -1,0 +1,92 @@
+/* From Uiverse.io by Spacious74 - Adapted for User Profile Button */
+
+.user-profile-button-wrapper {
+  display: inline-block;
+}
+
+.gradient-container {
+  position: relative;
+  padding: 3px;
+  background: linear-gradient(90deg, #03a9f4, #f441a5);
+  border-radius: 0.9em;
+  transition: all 0.4s ease;
+}
+
+.gradient-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 0.9em;
+  z-index: -10;
+  filter: blur(0);
+  transition: filter 0.4s ease;
+}
+
+.gradient-container:hover::before {
+  background: linear-gradient(90deg, #03a9f4, #f441a5);
+  filter: blur(1.2em);
+}
+
+.gradient-container:active::before {
+  filter: blur(0.2em);
+}
+
+.profile-button {
+  font-size: 1em;
+  padding: 0.6em 1em;
+  border-radius: 0.7em;
+  border: none;
+  background-color: #000;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 2px 2px 3px #000000b4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.profile-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 5px #000000b4;
+}
+
+.profile-button:active {
+  transform: translateY(0);
+  box-shadow: 1px 1px 2px #000000b4;
+}
+
+.username-text {
+  font-size: 0.95em;
+  letter-spacing: 0.02em;
+}
+
+.admin-badge {
+  margin-left: 0.5em;
+  padding: 0.2em 0.5em;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.4em;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .profile-button {
+    font-size: 0.9em;
+    padding: 0.5em 0.8em;
+  }
+  
+  .username-text {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

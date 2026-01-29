@@ -1,0 +1,82 @@
+{
+  "image": {
+    "id": 1,
+    "file_name": "1.2.840.114257.1.1.9748.20251202.060859.8838326.1.222.png",
+    "width": 0,
+    "height": 0,
+    "date_captured": "2025-12-05T12:55:52.783Z"
+  },
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "category_id": 1,
+      "segmentation": [
+        [
+          1421.3213571130525,
+          696.7733731817085,
+          1585.6212343776238,
+          616.5708337962891,
+          1583.7578674225779,
+          922.1620426394422,
+          1436.5518779739405,
+          996.6964838206989,
+          1419.7815753785262,
+          691.1052749775461,
+          1419.7815753785262,
+          691.1052749775461
+        ]
+      ],
+      "area": 47860.158002718,
+      "bbox": [
+        1419.7815753785262,
+        616.5708337962891,
+        165.83965899909754,
+        380.12565002440977
+      ],
+      "iscrowd": 0
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "mass",
+      "supercategory": "finding"
+    },
+    {
+      "id": 2,
+      "name": "calcification",
+      "supercategory": "finding"
+    },
+    {
+      "id": 3,
+      "name": "asymmetry",
+      "supercategory": "finding"
+    },
+    {
+      "id": 4,
+      "name": "distortion",
+      "supercategory": "finding"
+    },
+    {
+      "id": 5,
+      "name": "architectural_distortion",
+      "supercategory": "finding"
+    },
+    {
+      "id": 6,
+      "name": "lymph_node",
+      "supercategory": "finding"
+    },
+    {
+      "id": 7,
+      "name": "skin_lesion",
+      "supercategory": "finding"
+    },
+    {
+      "id": 8,
+      "name": "other",
+      "supercategory": "finding"
+    }
+  ]
+}

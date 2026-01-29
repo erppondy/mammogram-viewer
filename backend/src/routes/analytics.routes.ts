@@ -42,7 +42,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 });
 
 // Get image statistics (admin only)
-router.get('/images/statistics', requireAdmin, async (req: Request, res: Response) => {
+router.get('/images/statistics', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const statistics = await analyticsService.getImageStatistics();
     res.json(statistics);
@@ -93,7 +93,7 @@ router.get('/system/stats', requireAdmin, async (req: Request, res: Response) =>
 });
 
 // Get latest system stats (admin only)
-router.get('/system/stats/latest', requireAdmin, async (req: Request, res: Response) => {
+router.get('/system/stats/latest', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const stats = await analyticsService.getLatestSystemStats();
     res.json(stats);

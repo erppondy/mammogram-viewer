@@ -26,8 +26,8 @@ async function startWorkers() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('\nShutting down workers...');
-    await dicomWorker.close();
-    await thumbnailWorker.close();
+    if (dicomWorker && 'close' in dicomWorker) await dicomWorker.close();
+    if (thumbnailWorker && 'close' in thumbnailWorker) await thumbnailWorker.close();
     console.log('Workers shut down successfully');
     process.exit(0);
   };

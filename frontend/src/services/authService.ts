@@ -12,6 +12,15 @@ export interface RegisterData {
   professionalCredentials?: string;
 }
 
+export interface RegisterAmbulanceUserData {
+  email: string;
+  password: string;
+  fullName: string;
+  professionalCredentials?: string;
+  licenseKey: string;
+  ambulanceRole?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -19,14 +28,56 @@ export interface User {
   professionalCredentials?: string;
   role?: 'user' | 'super_admin';
   status?: 'pending' | 'approved' | 'rejected' | 'deactivated';
+  licenseId?: string;
+  ambulanceRole?: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: User;
+  license?: {
+    licenseId: string;
+    ambulanceName: string;
+    status: string;
+    expiresAt: string;
+    uploadQuota: number;
+    uploadsUsed: number;
+    uploadsRemaining: number;
+    quotaUsagePercent: number;
+    daysUntilExpiry: number;
+  };
+}
+
+export interface LicenseStatus {
+  hasLicense: boolean;
+  license: {
+    id: string;
+    licenseKey: string;
+    ambulanceName: string;
+    status: 'active' | 'expired' | 'revoked';
+    uploadQuota: number;
+    uploadsUsed: number;
+    uploadsRemaining: number;
+    quotaUsagePercent: number;
+    expiresAt: string;
+    daysUntilExpiry: number;
+    isExpiringSoon: boolean;
+    isQuotaLow: boolean;
+  } | null;
 }
 
 export const authService = {
-  async login(credentials: LoginCredentials) {
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const response = await api.post('/auth/login', credentials);
-    const { token, user } = response.data;
+    const { token, user, license } = response.data;
     localStorage.setItem('token', token);
-    return { token, user };
+    
+    // Store license info if available
+    if (license) {
+      localStorage.setItem('licenseInfo', JSON.stringify(license));
+    }
+    
+    return { token, user, license };
   },
 
   async register(data: RegisterData) {
@@ -42,6 +93,19 @@ export const authService = {
     return { token, user };
   },
 
+  async registerAmbulanceUser(data: RegisterAmbulanceUserData) {
+    const response = await api.post('/auth/register/ambulance', data);
+    // Ambulance registration may also require approval
+    if (response.data.requiresApproval) {
+      return response.data; // { message, user, requiresApproval }
+    }
+    const { token, user } = response.data;
+    if (token) {
+      localStorage.setItem('token', token);
+    }
+    return { token, user, message: response.data.message };
+  },
+
   async getCurrentUser(): Promise<User> {
     const response = await api.get('/auth/me');
     return response.data;
@@ -49,7 +113,10 @@ export const authService = {
 
   logout() {
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    localStorage.removeItem('licenseInfo');
+    // Use the base path from environment or default
+    const basePath = import.meta.env.VITE_BASE_PATH || '/mammogram';
+    window.location.href = `${basePath}/login`;
   },
 
   isAuthenticated(): boolean {
@@ -70,5 +137,10 @@ export const authService = {
     } catch {
       return null;
     }
+  },
+
+  async getLicenseStatus(): Promise<LicenseStatus> {
+    const response = await api.get('/auth/license-status');
+    return response.data.data;
   },
 };

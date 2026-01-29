@@ -8,8 +8,66 @@ import { trackActivity, trackImageView } from '../middleware/activityTracker';
 const router = Router();
 
 /**
+ * GET /api/images/debug-license
+ * Debug endpoint to check license sharing status
+ */
+router.get('/debug-license', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { query } = await import('../config/database');
+
+    // Get user info
+    const userInfo = await query(
+      'SELECT id, email, full_name, license_id FROM users WHERE id = $1',
+      [user.id]
+    );
+
+    // Get all images for this user
+    const myImages = await query(
+      'SELECT id, original_filename, user_id, license_id FROM images WHERE user_id = $1',
+      [user.id]
+    );
+
+    // Get all images with same license (if user has license)
+    let licenseImages = { rows: [] };
+    if (user.licenseId) {
+      licenseImages = await query(
+        'SELECT id, original_filename, user_id, license_id FROM images WHERE license_id = $1',
+        [user.licenseId]
+      );
+    }
+
+    // Get all users with same license
+    let licenseUsers = { rows: [] };
+    if (user.licenseId) {
+      licenseUsers = await query(
+        'SELECT id, email, full_name, license_id FROM users WHERE license_id = $1',
+        [user.licenseId]
+      );
+    }
+
+    res.json({
+      currentUser: userInfo.rows[0],
+      myImages: myImages.rows,
+      licenseImages: licenseImages.rows,
+      licenseUsers: licenseUsers.rows,
+      summary: {
+        hasLicense: !!user.licenseId,
+        licenseId: user.licenseId,
+        myImageCount: myImages.rows.length,
+        licenseImageCount: licenseImages.rows.length,
+        licenseUserCount: licenseUsers.rows.length,
+      }
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch debug info' });
+  }
+});
+
+/**
  * GET /api/images
- * Get user's images with cursor-based pagination
+ * Get images accessible to user (own images + license-shared images)
  */
 router.get('/', authMiddleware, trackActivity('view', 'images'), async (req: Request, res: Response) => {
   try {
@@ -18,34 +76,174 @@ router.get('/', authMiddleware, trackActivity('view', 'images'), async (req: Req
     const cursor = req.query.cursor as string | undefined;
     const direction = (req.query.direction as 'next' | 'prev') || 'next';
 
-    // Support both cursor and offset pagination for backward compatibility
-    if (req.query.useCursor === 'true' || cursor) {
-      const result = await imageRepository.findByUserIdWithCursor(
-        user.id,
-        limit,
-        cursor,
-        direction
-      );
+    // If user has a license, show all images from that license
+    // Otherwise, show only their own images
+    if (user.licenseId) {
+      // Support both cursor and offset pagination for backward compatibility
+      if (req.query.useCursor === 'true' || cursor) {
+        const result = await imageRepository.findByLicenseIdWithCursor(
+          user.licenseId,
+          limit,
+          cursor,
+          direction
+        );
 
-      res.json({
-        images: result.data,
-        nextCursor: result.nextCursor,
-        prevCursor: result.prevCursor,
-        hasMore: result.hasMore,
-        limit,
-      });
+        res.json({
+          images: result.data,
+          nextCursor: result.nextCursor,
+          prevCursor: result.prevCursor,
+          hasMore: result.hasMore,
+          limit,
+        });
+      } else {
+        // Legacy offset pagination
+        const offset = parseInt(req.query.offset as string) || 0;
+        const images = await imageRepository.findByLicenseId(user.licenseId, limit, offset);
+
+        res.json({
+          images,
+          limit,
+          offset,
+        });
+      }
     } else {
-      // Legacy offset pagination
-      const offset = parseInt(req.query.offset as string) || 0;
-      const images = await imageRepository.findByUserId(user.id, limit, offset);
+      // User without license - show only their own images
+      if (req.query.useCursor === 'true' || cursor) {
+        const result = await imageRepository.findByUserIdWithCursor(
+          user.id,
+          limit,
+          cursor,
+          direction
+        );
 
-      res.json({
-        images,
-        limit,
-        offset,
-      });
+        res.json({
+          images: result.data,
+          nextCursor: result.nextCursor,
+          prevCursor: result.prevCursor,
+          hasMore: result.hasMore,
+          limit,
+        });
+      } else {
+        // Legacy offset pagination
+        const offset = parseInt(req.query.offset as string) || 0;
+        const images = await imageRepository.findByUserId(user.id, limit, offset);
+
+        res.json({
+          images,
+          limit,
+          offset,
+        });
+      }
     }
   } catch (error) {
+    res.status(500).json({
+      error: {
+        code: 'FETCH_ERROR',
+        message: 'Failed to fetch images',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/images/by-patient
+ * Get images grouped by patient (license-shared or user-only)
+ */
+router.get('/by-patient', authMiddleware, trackActivity('view', 'images'), async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { query } = await import('../config/database');
+
+    // Get all images with patient metadata and uploader info
+    // If user has license, show all images from that license
+    // Otherwise, show only their own images
+    let result;
+    if (user.licenseId) {
+      result = await query(
+        `SELECT 
+          i.id, 
+          i.original_filename, 
+          i.file_format, 
+          i.file_size, 
+          i.uploaded_at,
+          i.thumbnail_path,
+          i.user_id,
+          i.license_id,
+          u.email as uploader_email,
+          u.full_name as uploader_name,
+          COALESCE(m.patient_name, m.patient_id, 'Unknown Patient') as patient_folder,
+          m.patient_name,
+          m.patient_id
+        FROM images i
+        LEFT JOIN image_metadata m ON i.id = m.image_id
+        LEFT JOIN users u ON i.user_id = u.id
+        WHERE i.license_id = $1
+        ORDER BY patient_folder, i.uploaded_at DESC`,
+        [user.licenseId]
+      );
+    } else {
+      result = await query(
+        `SELECT 
+          i.id, 
+          i.original_filename, 
+          i.file_format, 
+          i.file_size, 
+          i.uploaded_at,
+          i.thumbnail_path,
+          i.user_id,
+          i.license_id,
+          u.email as uploader_email,
+          u.full_name as uploader_name,
+          COALESCE(m.patient_name, m.patient_id, 'Unknown Patient') as patient_folder,
+          m.patient_name,
+          m.patient_id
+        FROM images i
+        LEFT JOIN image_metadata m ON i.id = m.image_id
+        LEFT JOIN users u ON i.user_id = u.id
+        WHERE i.user_id = $1
+        ORDER BY patient_folder, i.uploaded_at DESC`,
+        [user.id]
+      );
+    }
+
+    // Group images by patient
+    const patientGroups: Record<string, any> = {};
+    
+    result.rows.forEach((row: any) => {
+      const folder = row.patient_folder;
+      if (!patientGroups[folder]) {
+        patientGroups[folder] = {
+          patientName: row.patient_name,
+          patientId: row.patient_id,
+          images: [],
+        };
+      }
+      
+      patientGroups[folder].images.push({
+        id: row.id,
+        originalFilename: row.original_filename,
+        fileFormat: row.file_format,
+        fileSize: row.file_size,
+        uploadedAt: row.uploaded_at,
+        thumbnailPath: row.thumbnail_path,
+        userId: row.user_id,
+        uploaderEmail: row.uploader_email,
+        uploaderName: row.uploader_name,
+      });
+    });
+
+    res.json({
+      patients: Object.entries(patientGroups).map(([folder, data]) => ({
+        folder,
+        patientName: data.patientName,
+        patientId: data.patientId,
+        imageCount: data.images.length,
+        images: data.images,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching images by patient:', error);
     res.status(500).json({
       error: {
         code: 'FETCH_ERROR',
@@ -76,7 +274,11 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    if (image.userId !== user.id) {
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(403).json({
         error: {
           code: 'FORBIDDEN',
@@ -111,7 +313,21 @@ router.get('/:id/metadata', authMiddleware, async (req: Request, res: Response) 
     const { id } = req.params;
 
     const image = await imageRepository.findById(id);
-    if (!image || image.userId !== user.id) {
+    if (!image) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Image not found',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -156,7 +372,11 @@ router.get('/:id/file', authMiddleware, trackImageView, trackActivity('view', 'i
       });
     }
 
-    if (image.userId !== user.id) {
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -173,9 +393,13 @@ router.get('/:id/file', authMiddleware, trackImageView, trackActivity('view', 'i
     
     if (isDicom) {
       try {
-        // Convert DICOM to PNG on-the-fly (no caching to disk)
+        // Convert DICOM to PNG on-the-fly with optimization for large mammograms
         const { dicomConverterService } = await import('../services/DicomConverterService');
-        const pngBuffer = await dicomConverterService.convertToPNG(fileBuffer);
+        const pngBuffer = await dicomConverterService.convertToPNG(fileBuffer, {
+          maxWidth: 2048,  // Optimize for web viewing
+          maxHeight: 2048,
+          quality: 90
+        });
         
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Disposition', `inline; filename="${image.originalFilename}.png"`);
@@ -243,7 +467,21 @@ router.get('/:id/thumbnail', authMiddleware, async (req: Request, res: Response)
     const { id } = req.params;
 
     const image = await imageRepository.findById(id);
-    if (!image || image.userId !== user.id) {
+    if (!image) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Image not found',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -288,7 +526,21 @@ router.get('/:id/download', authMiddleware, trackActivity('download', 'image'), 
     const { id } = req.params;
 
     const image = await imageRepository.findById(id);
-    if (!image || image.userId !== user.id) {
+    if (!image) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Image not found',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -316,7 +568,7 @@ router.get('/:id/download', authMiddleware, trackActivity('download', 'image'), 
 
 /**
  * DELETE /api/images/:id
- * Delete image
+ * Delete image (license-shared users can delete)
  */
 router.delete('/:id', authMiddleware, trackActivity('delete', 'image'), async (req: Request, res: Response) => {
   try {
@@ -324,7 +576,21 @@ router.delete('/:id', authMiddleware, trackActivity('delete', 'image'), async (r
     const { id } = req.params;
 
     const image = await imageRepository.findById(id);
-    if (!image || image.userId !== user.id) {
+    if (!image) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Image not found',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Check access: user owns the image OR shares the same license
+    const hasAccess = image.userId === user.id || 
+                     (user.licenseId && image.licenseId === user.licenseId);
+
+    if (!hasAccess) {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -382,6 +648,193 @@ router.get('/search', authMiddleware, async (req: Request, res: Response) => {
       error: {
         code: 'SEARCH_ERROR',
         message: 'Failed to search images',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+});
+
+/**
+ * POST /api/images/download-zip
+ * Download multiple images as ZIP
+ */
+router.post('/download-zip', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { imageIds } = req.body;
+
+    if (!imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Image IDs array is required',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Verify all images are accessible to the user
+    const images = await Promise.all(
+      imageIds.map(id => imageRepository.findById(id))
+    );
+
+    const validImages = images.filter(img => {
+      if (!img) return false;
+      // User owns the image OR shares the same license
+      return img.userId === user.id || 
+             (user.licenseId && img.licenseId === user.licenseId);
+    });
+
+    if (validImages.length === 0) {
+      return res.status(404).json({
+        error: {
+          code: 'NO_IMAGES_FOUND',
+          message: 'No valid images found',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Create ZIP archive
+    const archiver = require('archiver');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    res.attachment(`images_${Date.now()}.zip`);
+    res.setHeader('Content-Type', 'application/zip');
+
+    archive.pipe(res);
+
+    // Add each image to the archive
+    const path = require('path');
+    const storageRoot = process.env.STORAGE_PATH || './storage';
+    
+    for (const image of validImages) {
+      if (image) {
+        const filePath = path.join(storageRoot, image.storagePath);
+        archive.file(filePath, { name: image.originalFilename });
+      }
+    }
+
+    await archive.finalize();
+  } catch (error) {
+    console.error('ZIP download error:', error);
+    res.status(500).json({
+      error: {
+        code: 'ZIP_ERROR',
+        message: 'Failed to create ZIP archive',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+});
+
+/**
+ * GET /api/images/folder/:folder/download-zip
+ * Download all images in a folder as ZIP
+ */
+router.get('/folder/:folder/download-zip', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const folder = decodeURIComponent(req.params.folder);
+
+    // Get all images in the folder accessible to this user
+    let images;
+    if (user.licenseId) {
+      images = await imageRepository.findByLicenseIdAndFolder(user.licenseId, folder);
+    } else {
+      images = await imageRepository.findByUserIdAndFolder(user.id, folder);
+    }
+
+    if (images.length === 0) {
+      return res.status(404).json({
+        error: {
+          code: 'NO_IMAGES_FOUND',
+          message: 'No images found in this folder',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Create ZIP archive
+    const archiver = require('archiver');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    res.attachment(`${folder}_${Date.now()}.zip`);
+    res.setHeader('Content-Type', 'application/zip');
+
+    archive.pipe(res);
+
+    // Add each image to the archive
+    const path = require('path');
+    const storageRoot = process.env.STORAGE_PATH || './storage';
+    
+    for (const image of images) {
+      const filePath = path.join(storageRoot, image.storagePath);
+      archive.file(filePath, { name: image.originalFilename });
+    }
+
+    await archive.finalize();
+  } catch (error) {
+    console.error('Folder ZIP download error:', error);
+    res.status(500).json({
+      error: {
+        code: 'ZIP_ERROR',
+        message: 'Failed to create ZIP archive',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /api/images/folder/:folder
+ * Delete all images in a folder
+ */
+router.delete('/folder/:folder', authMiddleware, trackActivity('delete', 'folder'), async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const folder = decodeURIComponent(req.params.folder);
+
+    // Get all images in the folder accessible to this user
+    let images;
+    if (user.licenseId) {
+      images = await imageRepository.findByLicenseIdAndFolder(user.licenseId, folder);
+    } else {
+      images = await imageRepository.findByUserIdAndFolder(user.id, folder);
+    }
+
+    if (images.length === 0) {
+      return res.status(404).json({
+        error: {
+          code: 'NO_IMAGES_FOUND',
+          message: 'No images found in this folder',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Delete all images
+    for (const image of images) {
+      // Delete files from storage
+      await storageService.deleteFile(image.storagePath);
+      if (image.thumbnailPath) {
+        await storageService.deleteFile(image.thumbnailPath);
+      }
+      // Delete from database
+      await imageRepository.delete(image.id);
+    }
+
+    res.json({
+      success: true,
+      message: `Deleted ${images.length} images from folder`,
+      deletedCount: images.length,
+    });
+  } catch (error) {
+    console.error('Folder delete error:', error);
+    res.status(500).json({
+      error: {
+        code: 'DELETE_ERROR',
+        message: 'Failed to delete folder',
         timestamp: new Date().toISOString(),
       },
     });

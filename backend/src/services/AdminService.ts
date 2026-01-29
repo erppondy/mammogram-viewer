@@ -5,6 +5,7 @@ export interface UserFilters {
   status?: UserStatus;
   role?: UserRole;
   search?: string;
+  licenseId?: string;
 }
 
 export interface SystemStats {
@@ -42,6 +43,13 @@ export class AdminService {
     if (filters?.search) {
       sql += ` AND (email ILIKE $${paramCount} OR full_name ILIKE $${paramCount})`;
       params.push(`%${filters.search}%`);
+      paramCount++;
+    }
+
+    // Apply license filter
+    if (filters?.licenseId) {
+      sql += ` AND license_id = $${paramCount}`;
+      params.push(filters.licenseId);
       paramCount++;
     }
 
@@ -266,6 +274,79 @@ export class AdminService {
   }
 
   /**
+   * Assign a user to an ambulance license
+   * @param userId - ID of the user to assign
+   * @param licenseId - ID of the license to assign to
+   * @param ambulanceRole - Role within the ambulance (operator, supervisor, admin)
+   * @param adminId - ID of the admin performing the assignment
+   * @throws Error if user or license not found
+   */
+  async assignUserToLicense(
+    userId: string,
+    licenseId: string,
+    ambulanceRole: string,
+    adminId: string
+  ): Promise<void> {
+    // Validate user exists
+    const userResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      throw new Error('USER_NOT_FOUND');
+    }
+
+    // Validate license exists
+    const licenseResult = await query('SELECT * FROM ambulance_licenses WHERE id = $1', [
+      licenseId,
+    ]);
+    if (licenseResult.rows.length === 0) {
+      throw new Error('LICENSE_NOT_FOUND');
+    }
+
+    // Cannot assign self
+    if (userId === adminId) {
+      throw new Error('CANNOT_MODIFY_SELF');
+    }
+
+    // Update user with license assignment
+    await query(
+      `UPDATE users 
+       SET license_id = $1, 
+           ambulance_role = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      [licenseId, ambulanceRole, userId]
+    );
+  }
+
+  /**
+   * Unassign a user from their ambulance license
+   * @param userId - ID of the user to unassign
+   * @param adminId - ID of the admin performing the unassignment
+   * @throws Error if user not found
+   */
+  async unassignUserFromLicense(userId: string, adminId: string): Promise<void> {
+    // Validate user exists
+    const userResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      throw new Error('USER_NOT_FOUND');
+    }
+
+    // Cannot unassign self
+    if (userId === adminId) {
+      throw new Error('CANNOT_MODIFY_SELF');
+    }
+
+    // Remove license assignment
+    await query(
+      `UPDATE users 
+       SET license_id = NULL, 
+           ambulance_role = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [userId]
+    );
+  }
+
+  /**
    * Map database row to User model
    */
   private mapRowToUser(row: any): User {
@@ -281,6 +362,8 @@ export class AdminService {
       approvedBy: row.approved_by,
       approvedAt: row.approved_at,
       rejectionReason: row.rejection_reason,
+      licenseId: row.license_id || null,
+      ambulanceRole: row.ambulance_role || null,
       createdAt: row.created_at,
       lastLoginAt: row.last_login_at,
     };

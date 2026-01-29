@@ -47,11 +47,11 @@ class QueueServiceAdapter {
     console.log('Clean not needed in in-memory queue (auto-cleanup enabled)');
   }
 
-  getDicomQueue() {
+  getDicomQueue(): any {
     return inMemoryQueueService.getDicomQueue();
   }
 
-  getThumbnailQueue() {
+  getThumbnailQueue(): any {
     return inMemoryQueueService.getThumbnailQueue();
   }
 

@@ -1,0 +1,766 @@
+Test Case ID,Feature,Test Scenario,Priority,Pre-requisites,Test Steps,Expected Result,Test Data,Status,Notes
+TC-001,Admin - License Creation,Create new ambulance license,High,Super admin account exists,"1. Login as super admin
+2. Navigate to Admin Dashboard
+3. Click on 'License Management' tab
+4. Click 'Create New License' button
+5. Fill in ambulance details:
+   - Ambulance Name: Test Ambulance 1
+   - Contact Email: test@ambulance.com
+   - Contact Phone: +1234567890
+   - Address: 123 Test Street
+   - Upload Quota: 1000
+   - Duration: 365 days
+6. Click 'Create License' button
+7. Copy the generated license key","License created successfully
+License key displayed (format: AMB-XXXX-XXXX-XXXX-XXXX)
+License appears in license list with 'Active' status
+Success notification shown","Admin Email: admin@system.com
+Admin Password: admin123
+Ambulance Name: Test Ambulance 1
+Contact Email: test@ambulance.com
+Upload Quota: 1000
+Duration: 365 days",Pending,Save license key for next test cases
+
+TC-002,Admin - License Template,Create license template,Medium,Super admin logged in,"1. Navigate to Admin Dashboard
+2. Click 'License Templates' tab
+3. Click 'Create Template' button
+4. Fill template details:
+   - Template Name: Standard Plan
+   - Description: Standard ambulance plan
+   - Default Duration: 365 days
+   - Default Upload Quota: 1000
+5. Click 'Save Template' button
+6. Verify template appears in list","Template created successfully
+Template shows in templates list
+Can be used when creating new licenses
+Success notification displayed","Template Name: Standard Plan
+Duration: 365 days
+Quota: 1000",Pending,Templates make license creation faster
+
+TC-003,Admin - View License Details,View detailed license information,Medium,License created in TC-001,"1. Login as super admin
+2. Navigate to Admin Dashboard
+3. Click 'License Management' tab
+4. Find the license created in TC-001
+5. Click on the license row or 'View Details' button
+6. Review displayed information","License details panel opens
+Shows: License Key, Ambulance Name, Contact Info, Status, Quota Usage, Expiry Date, Created Date
+Shows list of users registered with this license
+Shows upload statistics",Use license from TC-001,Pending,Verify all information is accurate
+
+TC-004,Admin - Edit License,Update license quota and expiry,Medium,License created in TC-001,"1. Login as super admin
+2. Navigate to Admin Dashboard > License Management
+3. Find the license from TC-001
+4. Click 'Edit' button
+5. Update Upload Quota to 2000
+6. Extend expiry date by 30 days
+7. Click 'Save Changes' button
+8. Verify changes are reflected","License updated successfully
+New quota: 2000
+Expiry date extended
+Audit log entry created
+Success notification shown","New Quota: 2000
+Extension: +30 days",Pending,Check audit log for changes
+
+TC-005,Admin - Revoke License,Revoke an active license,High,License created in TC-001,"1. Login as super admin
+2. Navigate to Admin Dashboard > License Management
+3. Find a test license
+4. Click 'Revoke' button
+5. Enter revocation reason: 'Testing revocation'
+6. Confirm revocation
+7. Verify license status changes to 'Revoked'","License status changed to 'Revoked'
+Users with this license cannot login
+Cannot upload new images
+Revocation reason recorded
+Audit log updated","Revocation Reason: Testing revocation",Pending,Create separate test license for this
+
+TC-006,Admin - View Statistics,View system-wide statistics,Medium,Multiple licenses and users exist,"1. Login as super admin
+2. Navigate to Admin Dashboard
+3. View 'System Overview' section
+4. Check statistics cards
+5. Navigate to 'Ambulance Statistics' tab
+6. Review per-ambulance statistics","System stats displayed:
+- Total Licenses (Active/Expired/Revoked)
+- Total Users
+- Total Images
+- Total Storage Used
+Per-ambulance stats show:
+- Upload usage
+- Storage usage
+- User count
+- Activity charts",N/A,Pending,Verify numbers are accurate
+
+TC-007,Admin - User Management,View and manage all users,Medium,Super admin logged in,"1. Navigate to Admin Dashboard
+2. Click 'User Management' tab
+3. View list of all users
+4. Search for specific user
+5. Filter by license
+6. View user details
+7. Deactivate a test user
+8. Reactivate the user","User list displays all users
+Shows: Name, Email, License, Status, Role
+Search and filter work correctly
+Can view user details
+Can change user status
+Status changes reflected immediately",N/A,Pending,Don't deactivate real users
+
+TC-008,Ambulance User - Registration,Register new ambulance user with license key,High,Valid license key from TC-001,"1. Open application URL
+2. Click 'Register' button
+3. Check 'Register as Ambulance User' checkbox
+4. Fill registration form:
+   - Full Name: John Operator
+   - Email: john@test.com
+   - Password: Test@123456
+   - Confirm Password: Test@123456
+   - License Key: [from TC-001]
+5. Click 'Register' button
+6. Check for success message","Registration successful
+Success message displayed
+User account created
+User associated with license
+Can proceed to login","Full Name: John Operator
+Email: john@test.com
+Password: Test@123456
+License Key: [from TC-001]",Pending,Save credentials for next tests
+
+TC-009,Ambulance User - Registration Validation,Test registration with invalid license key,Medium,None,"1. Open registration page
+2. Check 'Register as Ambulance User'
+3. Fill form with invalid license key: AMB-INVALID-KEY
+4. Click 'Register' button","Registration fails
+Error message: 'Invalid license key'
+User not created
+Form remains filled (except password)",Invalid License Key: AMB-INVALID-KEY,Pending,Test validation works
+
+TC-010,Ambulance User - Login,Login with ambulance user credentials,High,User registered in TC-008,"1. Open application URL
+2. Click 'Login' button
+3. Enter email: john@test.com
+4. Enter password: Test@123456
+5. Click 'Login' button
+6. Verify dashboard loads","Login successful
+Dashboard page loads
+User name displayed in header
+License status widget visible
+Navigation menu accessible","Email: john@test.com
+Password: Test@123456",Pending,First login for this user
+
+TC-011,Ambulance User - Login with Expired License,Attempt login with expired license,High,License expired or revoked,"1. Create/revoke a test license
+2. Register user with that license
+3. Attempt to login
+4. Verify access denied","Login fails
+Error message: 'License expired' or 'License revoked'
+Cannot access dashboard
+Redirected to login page",Use revoked license from TC-005,Pending,Security check
+
+TC-012,Ambulance User - View License Status,Check license information on dashboard,Medium,User logged in from TC-010,"1. Login as ambulance user
+2. View dashboard
+3. Locate 'License Status' widget
+4. Check displayed information","License status widget shows:
+- Ambulance Name
+- License Status: Active
+- Upload Quota: X/1000 used
+- Expiry Date
+- Days until expiry
+Color-coded status indicator",N/A,Pending,Widget should be prominent
+
+TC-013,Upload - Single DICOM File,Upload a single DICOM image,High,User logged in with active license,"1. Login as ambulance user
+2. Navigate to 'Upload Images' page
+3. Click 'Choose Files' or drag-drop DICOM file
+4. Click 'Extract DICOM Data' button
+5. Verify auto-filled fields:
+   - Patient ID
+   - Patient Name
+   - Patient Age
+   - Study Date
+   - Modality
+6. Click 'Upload' button
+7. Wait for upload completion","Upload successful
+Progress bar shows 100%
+Success message displayed
+Image appears in gallery
+Metadata extracted correctly
+Thumbnail generated
+License quota incremented","DICOM File: sample_mammogram.dcm
+Expected Patient ID: 12345
+Expected Modality: MG",Pending,Use real DICOM file
+
+TC-014,Upload - Multiple DICOM Files,Upload multiple DICOM files at once,High,User logged in,"1. Navigate to Upload page
+2. Select multiple DICOM files (3-5 files)
+3. Click 'Extract DICOM Data' for each
+4. Verify metadata for all files
+5. Click 'Upload All' button
+6. Monitor upload progress","All files upload successfully
+Individual progress bars shown
+All images appear in gallery
+All thumbnails generated
+Quota updated correctly
+Success notification for each file","Multiple DICOM files: 3-5 files
+Total size: < 50MB",Pending,Test batch upload
+
+TC-015,Upload - Non-DICOM Image,Upload JPEG/PNG image,Medium,User logged in,"1. Navigate to Upload page
+2. Select JPEG or PNG file
+3. Manually fill patient information:
+   - Patient ID: TEST001
+   - Patient Name: Test Patient
+   - Patient Age: 45
+   - Patient Sex: F
+4. Click 'Upload' button","Upload successful
+Manual metadata saved
+Image viewable in gallery
+Thumbnail generated
+No DICOM extraction attempted","JPEG/PNG file
+Patient ID: TEST001
+Patient Name: Test Patient",Pending,Non-DICOM support
+
+TC-016,Upload - Quota Limit,Test upload quota enforcement,High,User near quota limit,"1. Login with user near quota limit
+2. Check remaining quota
+3. Attempt to upload when quota exceeded
+4. Verify upload blocked","Warning shown when quota low (90%)
+Upload blocked when quota reached
+Error message: 'Upload quota exceeded'
+Cannot upload until quota increased
+Quota warning visible on dashboard",Set quota to low value for testing,Pending,Important security feature
+
+TC-017,Upload - Large File,Upload large DICOM file (>10MB),Medium,User logged in,"1. Navigate to Upload page
+2. Select large DICOM file (10-50MB)
+3. Start upload
+4. Monitor progress bar
+5. Wait for completion","Upload completes successfully
+Progress bar updates smoothly
+Large file handled correctly
+Thumbnail generated
+Conversion works for viewing","Large DICOM file: 10-50MB
+Mammogram images are typically large",Pending,Performance test
+
+TC-018,View Images - Gallery View,View all images in gallery,High,Images uploaded in previous tests,"1. Login as ambulance user
+2. Navigate to 'Gallery' or 'View Images'
+3. View image grid
+4. Scroll through images
+5. Check thumbnail quality","Gallery displays all images from license
+Shows images from all users in same license
+Thumbnails load quickly
+Image count displayed
+Pagination works if many images
+Grid layout responsive","Multiple images uploaded",Pending,Shared access feature
+
+TC-019,View Images - Shared License Access,Verify users see each other's images,High,Two users with same license,"1. Login as User 1 (john@test.com)
+2. Upload an image
+3. Note the image filename
+4. Logout
+5. Login as User 2 (different email, same license)
+6. Navigate to Gallery
+7. Search for User 1's image","User 2 can see User 1's image
+All images from same license visible
+Patient folders show all team data
+Shared access working correctly","User 1: john@test.com
+User 2: jane@test.com
+Same License Key",Pending,KEY FEATURE - Test thoroughly
+
+TC-020,View Images - License Isolation,Verify users cannot see other license images,High,Two users with different licenses,"1. Login as User A (License 1)
+2. Note images visible
+3. Logout
+4. Login as User B (License 2)
+5. Check gallery
+6. Verify User A's images not visible","User B cannot see User A's images
+Only images from own license visible
+Complete isolation between licenses
+Security working correctly","User A: License 1
+User B: License 2",Pending,Security test - Critical
+
+TC-021,View Images - Patient Folders,View images grouped by patient,Medium,Images with patient metadata uploaded,"1. Login as ambulance user
+2. Navigate to 'View by Patient' or similar
+3. View patient folders
+4. Click on a patient folder
+5. View images for that patient","Images grouped by patient name/ID
+Folder shows patient info
+Image count per patient
+Can expand/collapse folders
+All team's patients visible","Multiple patients with images",Pending,Organizational feature
+
+TC-022,View Images - Image Details,View detailed image information,Medium,Images uploaded,"1. Navigate to Gallery
+2. Click on an image thumbnail
+3. View image details panel
+4. Check displayed information","Image details shown:
+- Filename
+- Upload date
+- File size
+- Patient information
+- DICOM metadata
+- Uploader name (optional)
+- Annotations count",N/A,Pending,Metadata display
+
+TC-023,View Images - DICOM Viewer,View DICOM image with viewer,High,DICOM image uploaded,"1. Navigate to Gallery
+2. Click on DICOM image
+3. Image opens in viewer
+4. Test viewer controls:
+   - Zoom in/out
+   - Pan
+   - Window/Level adjustment
+   - Reset view","DICOM viewer opens
+Image displays correctly
+Zoom works smoothly
+Pan works
+Window/Level adjusts brightness/contrast
+Reset returns to original view
+Viewer responsive",DICOM image required,Pending,Core viewing feature
+
+TC-024,Download - Single Image,Download single image file,High,Images uploaded,"1. Navigate to Gallery
+2. Select an image
+3. Click 'Download' button
+4. Check downloaded file","Download starts immediately
+File downloads to default folder
+Filename preserved
+File opens correctly
+Original quality maintained
+DICOM files download as .dcm",N/A,Pending,Basic download
+
+TC-025,Download - Multiple Images (ZIP),Download multiple images as ZIP,High,Multiple images uploaded,"1. Navigate to Gallery
+2. Select multiple images (checkbox)
+3. Click 'Download Selected' or 'Download as ZIP'
+4. Wait for ZIP creation
+5. Download ZIP file
+6. Extract and verify contents","ZIP file created
+Download starts
+ZIP contains all selected images
+Filenames preserved
+All files intact
+ZIP extracts successfully","Select 5-10 images",Pending,Batch download feature
+
+TC-026,Download - Patient Folder,Download all images from patient folder,Medium,Patient folder with multiple images,"1. Navigate to Patient Folders view
+2. Select a patient folder
+3. Click 'Download Folder' button
+4. Download ZIP file
+5. Extract and verify","ZIP created with patient name
+All patient images included
+Folder structure preserved
+Download completes successfully","Patient with 3+ images",Pending,Convenient for patient data
+
+TC-027,Download - Shared License Images,Download images uploaded by other users,High,Images from multiple users in same license,"1. Login as User 1
+2. Navigate to Gallery
+3. Find image uploaded by User 2
+4. Click Download on User 2's image
+5. Verify download works","Download successful
+Can download any image from license
+Shared access working for downloads
+File downloads correctly",Two users same license,Pending,Shared access test
+
+TC-028,Annotation - Create Rectangle,Create rectangle annotation on image,High,Image uploaded and opened in viewer,"1. Open image in annotation viewer
+2. Click 'Rectangle' tool
+3. Draw rectangle on image area
+4. Add label: 'Mass'
+5. Add notes: 'Suspicious area'
+6. Click 'Save Annotation'","Rectangle drawn on image
+Annotation saved
+Appears in annotations list
+Visible on image
+Can be edited later","Label: Mass
+Notes: Suspicious area",Pending,Basic annotation
+
+TC-029,Annotation - Create Polygon,Create polygon annotation,High,Image opened in viewer,"1. Open image in annotation viewer
+2. Click 'Polygon' tool
+3. Click multiple points to create polygon
+4. Double-click to close polygon
+5. Add label: 'Calcification'
+6. Save annotation","Polygon created with multiple points
+Shape closes properly
+Annotation saved
+Visible on image
+Points can be adjusted","Label: Calcification
+Min 4 points",Pending,Advanced annotation
+
+TC-030,Annotation - Create Circle,Create circular annotation,Medium,Image opened in viewer,"1. Open image in annotation viewer
+2. Click 'Circle' tool
+3. Click center point
+4. Drag to set radius
+5. Add label: 'Lesion'
+6. Save annotation","Circle drawn correctly
+Radius adjustable
+Annotation saved
+Visible on image","Label: Lesion",Pending,Shape annotation
+
+TC-031,Annotation - Edit Existing,Edit previously created annotation,Medium,Annotation exists on image,"1. Open annotated image
+2. Click on existing annotation
+3. Click 'Edit' button
+4. Modify shape (resize/move)
+5. Update label/notes
+6. Save changes","Annotation selected
+Can resize and move
+Label/notes editable
+Changes saved
+Updated annotation visible","Modify existing annotation",Pending,Edit functionality
+
+TC-032,Annotation - Delete Annotation,Delete an annotation,Medium,Annotation exists,"1. Open annotated image
+2. Click on annotation
+3. Click 'Delete' button
+4. Confirm deletion","Annotation removed from image
+Removed from annotations list
+Deletion confirmed
+Cannot be undone (or undo available)","Delete test annotation",Pending,Deletion feature
+
+TC-033,Annotation - Multiple Annotations,Create multiple annotations on one image,High,Image opened,"1. Open image in viewer
+2. Create rectangle annotation
+3. Create polygon annotation
+4. Create circle annotation
+5. Save all annotations
+6. Verify all visible","All annotations saved
+All visible simultaneously
+Can select individual annotations
+Each has own label/notes
+All listed in annotations panel","3+ different annotations",Pending,Multiple annotations support
+
+TC-034,Annotation - Shared License Annotation,Annotate image uploaded by another user,High,Image from another user in same license,"1. Login as User 1
+2. Upload image
+3. Logout
+4. Login as User 2 (same license)
+5. Open User 1's image
+6. Create annotation
+7. Save annotation","User 2 can annotate User 1's image
+Annotation saved successfully
+Visible to both users
+Shared collaboration working","Two users same license",Pending,Collaboration feature
+
+TC-035,Annotation - Export Annotations,Export annotations in LabelMe format,Medium,Annotated images exist,"1. Navigate to annotated image
+2. Click 'Export' button
+3. Select 'LabelMe JSON' format
+4. Download export file
+5. Verify JSON structure","JSON file downloads
+Contains image info
+Contains all annotations
+Valid LabelMe format
+Can be imported to training systems","Annotated image required",Pending,AI training export
+
+TC-036,Reports - Create Report,Create diagnostic report for image,High,Image uploaded,"1. Open image in viewer
+2. Click 'Create Report' button
+3. Fill report form:
+   - Findings: Suspicious mass detected
+   - Impression: BIRADS 4
+   - Recommendations: Biopsy recommended
+4. Save as draft","Report created
+Saved as draft status
+Associated with image
+Visible in reports list
+Can be edited","Findings: Suspicious mass
+Impression: BIRADS 4",Pending,Reporting feature
+
+TC-037,Reports - Finalize Report,Finalize and sign report,High,Draft report exists,"1. Open draft report
+2. Review all fields
+3. Click 'Finalize Report' button
+4. Add digital signature (if required)
+5. Confirm finalization","Report status changed to 'Finalized'
+Cannot be edited anymore
+Signature recorded
+Timestamp added
+Report locked","Finalize draft report",Pending,Report signing
+
+TC-038,Reports - View Report History,View all reports for a patient,Medium,Multiple reports exist,"1. Navigate to Reports section
+2. Filter by patient ID
+3. View report list
+4. Click on a report to view details","All patient reports listed
+Sorted by date
+Can view each report
+Shows status (draft/finalized)
+Shows radiologist name","Patient with multiple reports",Pending,Report history
+
+TC-039,Password - Change Password,Change user password,High,User logged in,"1. Login as ambulance user
+2. Click on profile/user menu
+3. Select 'Change Password'
+4. Enter current password: Test@123456
+5. Enter new password: NewTest@123456
+6. Confirm new password: NewTest@123456
+7. Click 'Change Password' button","Password changed successfully
+Success message shown
+Can login with new password
+Old password no longer works","Current: Test@123456
+New: NewTest@123456",Pending,Security feature
+
+TC-040,Password - Change Password Validation,Test password validation rules,Medium,User logged in,"1. Navigate to Change Password
+2. Try weak password: '12345'
+3. Try mismatched passwords
+4. Try current password as new password
+5. Verify validation errors","Weak password rejected
+Mismatch error shown
+Cannot reuse current password
+Validation messages clear
+Password requirements displayed","Test various invalid passwords",Pending,Validation testing
+
+TC-041,Password - Forgot Password,Reset forgotten password,High,User account exists,"1. Logout
+2. Click 'Forgot Password' link
+3. Enter email address
+4. Submit request
+5. Check email for reset link
+6. Click reset link
+7. Enter new password
+8. Login with new password","Reset email sent
+Reset link works
+Can set new password
+Can login with new password
+Old password invalidated","Email: john@test.com",Pending,Password recovery
+
+TC-042,Profile - View Profile,View user profile information,Medium,User logged in,"1. Login as user
+2. Click on profile icon/name
+3. View profile page","Profile displays:
+- Full Name
+- Email
+- License Information
+- Registration Date
+- Last Login
+- Role
+- Upload Statistics",N/A,Pending,Profile page
+
+TC-043,Profile - Update Profile,Update profile information,Medium,User logged in,"1. Navigate to Profile page
+2. Click 'Edit Profile' button
+3. Update Full Name
+4. Update Professional Credentials
+5. Save changes","Profile updated successfully
+Changes reflected immediately
+Success notification shown
+Updated info visible everywhere","Update name and credentials",Pending,Profile editing
+
+TC-044,Dashboard - View Statistics,View personal statistics on dashboard,Medium,User with activity,"1. Login as user
+2. View dashboard
+3. Check statistics cards","Dashboard shows:
+- Total images uploaded
+- Total annotations created
+- Total reports created
+- Storage used
+- Recent activity
+- License status",User with some activity,Pending,Personal stats
+
+TC-045,Dashboard - Recent Activity,View recent activity feed,Low,User with activity,"1. Login as user
+2. View dashboard
+3. Check 'Recent Activity' section","Recent activity shows:
+- Recent uploads
+- Recent annotations
+- Recent reports
+- Timestamps
+- Quick links to items",N/A,Pending,Activity feed
+
+TC-046,Search - Search Images,Search for images by patient info,Medium,Multiple images uploaded,"1. Navigate to Gallery
+2. Use search box
+3. Search by Patient ID: '12345'
+4. Search by Patient Name: 'John Doe'
+5. Search by Study Date","Search returns matching images
+Results filtered correctly
+Can search by multiple criteria
+Search is case-insensitive
+Results from entire license","Patient ID: 12345
+Patient Name: John Doe",Pending,Search functionality
+
+TC-047,Filter - Filter by Date,Filter images by upload date,Medium,Images uploaded on different dates,"1. Navigate to Gallery
+2. Open filter panel
+3. Select date range
+4. Apply filter
+5. Verify results","Images filtered by date range
+Only matching images shown
+Date range picker works
+Can clear filter
+Results accurate","Date range: Last 7 days",Pending,Date filtering
+
+TC-048,Filter - Filter by Modality,Filter images by modality type,Medium,Images with different modalities,"1. Navigate to Gallery
+2. Open filter panel
+3. Select Modality: 'MG' (Mammography)
+4. Apply filter","Only mammography images shown
+Filter works correctly
+Can select multiple modalities
+Can clear filter","Modality: MG",Pending,Modality filter
+
+TC-049,Delete - Delete Single Image,Delete a single image,High,Image uploaded,"1. Navigate to Gallery
+2. Select an image
+3. Click 'Delete' button
+4. Confirm deletion
+5. Verify image removed","Confirmation dialog shown
+Image deleted after confirmation
+Removed from gallery
+Quota decremented
+Cannot be recovered (or moved to trash)","Delete test image",Pending,Deletion feature
+
+TC-050,Delete - Delete Multiple Images,Delete multiple images at once,Medium,Multiple images uploaded,"1. Navigate to Gallery
+2. Select multiple images (checkboxes)
+3. Click 'Delete Selected' button
+4. Confirm deletion
+5. Verify all removed","All selected images deleted
+Confirmation shows count
+Quota updated correctly
+All removed from gallery","Select 3-5 images",Pending,Batch deletion
+
+TC-051,Delete - Delete Shared License Image,Delete image uploaded by another user,High,Image from another user in same license,"1. Login as User 2
+2. Find image uploaded by User 1
+3. Click Delete on User 1's image
+4. Confirm deletion","User 2 can delete User 1's image
+Deletion successful
+Shared access working for deletion
+Image removed for all users","Two users same license",Pending,Shared deletion access
+
+TC-052,Logout - User Logout,Logout from application,High,User logged in,"1. Click on user menu
+2. Click 'Logout' button
+3. Verify redirect to login page","User logged out successfully
+Session cleared
+Redirected to login page
+Cannot access protected pages
+Must login again to access",N/A,Pending,Session management
+
+TC-053,Security - Session Timeout,Test session timeout,Medium,User logged in,"1. Login as user
+2. Leave browser idle for 30+ minutes
+3. Try to perform action
+4. Verify session expired","Session expires after timeout
+User redirected to login
+Must login again
+Data not lost if possible
+Timeout message shown","Timeout: 30 minutes",Pending,Security feature
+
+TC-054,Security - Concurrent Sessions,Test multiple concurrent logins,Low,User account,"1. Login on Browser 1
+2. Login same user on Browser 2
+3. Perform actions on both
+4. Verify behavior","Both sessions work OR
+Only latest session active OR
+Warning about concurrent login
+Behavior is consistent and secure",N/A,Pending,Session handling
+
+TC-055,Performance - Large Gallery,Test gallery with 100+ images,Medium,100+ images uploaded,"1. Navigate to Gallery with 100+ images
+2. Scroll through gallery
+3. Test pagination
+4. Test search and filter","Gallery loads within 3 seconds
+Pagination works smoothly
+Thumbnails load progressively
+No lag when scrolling
+Search/filter responsive","100+ images in license",Pending,Performance test
+
+TC-056,Performance - Large File Upload,Upload 50MB+ file,Medium,Large DICOM file available,"1. Select 50MB+ DICOM file
+2. Start upload
+3. Monitor progress
+4. Wait for completion","Upload completes successfully
+Progress bar accurate
+No timeout errors
+Thumbnail generated
+File viewable","50MB+ DICOM file",Pending,Large file handling
+
+TC-057,Mobile - Responsive Design,Test on mobile device,Low,Mobile device or emulator,"1. Open app on mobile device
+2. Test all major features:
+   - Login
+   - Gallery view
+   - Image viewer
+   - Upload
+   - Annotations","UI adapts to mobile screen
+All features accessible
+Touch controls work
+Responsive layout
+Readable text and buttons","Mobile device or browser dev tools",Pending,Mobile compatibility
+
+TC-058,Browser - Cross-Browser Testing,Test on different browsers,Medium,Multiple browsers installed,"1. Test on Chrome
+2. Test on Firefox
+3. Test on Safari
+4. Test on Edge
+5. Verify consistent behavior","Works on all major browsers
+UI consistent
+Features work correctly
+No browser-specific bugs
+Performance acceptable","Chrome, Firefox, Safari, Edge",Pending,Browser compatibility
+
+TC-059,Error Handling - Network Error,Test behavior during network issues,Low,User logged in,"1. Start uploading image
+2. Disconnect network
+3. Observe behavior
+4. Reconnect network
+5. Verify recovery","Error message shown
+Upload can retry
+Graceful error handling
+User informed of issue
+Can recover when network restored",N/A,Pending,Error handling
+
+TC-060,Error Handling - Invalid File,Upload invalid/corrupted file,Medium,Corrupted file,"1. Try to upload corrupted DICOM file
+2. Try to upload unsupported file type
+3. Verify error handling","Invalid file rejected
+Clear error message
+Upload doesn't proceed
+User can try again
+No system crash","Corrupted or invalid file",Pending,Validation
+
+TC-061,Admin - Audit Log,View audit log of system activities,Low,Super admin logged in,"1. Login as super admin
+2. Navigate to Audit Log section
+3. View log entries
+4. Filter by date/user/action
+5. Export audit log","Audit log displays all activities:
+- License changes
+- User registrations
+- Admin actions
+- Timestamps
+- User who performed action
+Can filter and export",N/A,Pending,Audit trail
+
+TC-062,Admin - Export Data,Export system data for backup,Low,Super admin logged in,"1. Login as super admin
+2. Navigate to Export section
+3. Select data to export
+4. Click 'Export' button
+5. Download export file","Data exported successfully
+File downloads
+Contains selected data
+Can be used for backup
+Format is standard (CSV/JSON)",N/A,Pending,Data export
+
+TC-063,Notification - Upload Complete,Receive notification when upload completes,Low,User uploading file,"1. Start uploading large file
+2. Navigate to different page
+3. Wait for upload to complete
+4. Check for notification","Notification shown when upload completes
+Can click to view uploaded image
+Notification dismissible
+Works even on different page",Large file for testing,Pending,User notifications
+
+TC-064,Notification - Quota Warning,Receive warning when quota is low,Medium,User near quota limit,"1. Upload images until 90% quota used
+2. Check for warning notification
+3. Continue to 100% quota
+4. Verify upload blocked","Warning shown at 90% quota
+Clear message about remaining quota
+Blocked at 100% with error message
+Warning visible on dashboard","Use low quota for testing",Pending,Quota management
+
+TC-065,Notification - License Expiry,Receive warning when license expiring,Medium,License expiring soon,"1. Set license to expire in 7 days
+2. Login as user with that license
+3. Check for expiry warning
+4. Test at 3 days, 1 day before expiry","Warning shown when license expiring
+Days remaining displayed
+Warning becomes more prominent as expiry approaches
+Clear call-to-action to contact admin","License expiring in 7 days",Pending,License management
+
+TC-066,Integration - DICOM Metadata Extraction,Verify DICOM metadata extraction accuracy,High,Standard DICOM file with known metadata,"1. Upload DICOM file with known metadata
+2. Extract DICOM data
+3. Compare extracted vs actual metadata
+4. Verify all fields correct","All DICOM tags extracted correctly:
+- Patient ID matches
+- Patient Name matches
+- Study Date matches
+- Modality matches
+- All other tags accurate","DICOM file with known metadata",Pending,Data accuracy critical
+
+TC-067,Integration - Thumbnail Generation,Verify thumbnail generation for all formats,Medium,Various image formats,"1. Upload DICOM file
+2. Upload JPEG file
+3. Upload PNG file
+4. Verify thumbnails generated for all","Thumbnails generated for all formats
+DICOM converted to viewable format
+Thumbnails load quickly
+Quality acceptable
+Aspect ratio preserved","DICOM, JPEG, PNG files",Pending,Thumbnail service
+
+TC-068,Accessibility - Keyboard Navigation,Test keyboard-only navigation,Low,User logged in,"1. Use only keyboard (Tab, Enter, Arrow keys)
+2. Navigate through application
+3. Test all major features
+4. Verify accessibility","All features accessible via keyboard
+Tab order logical
+Focus indicators visible
+Can complete all tasks
+Keyboard shortcuts work",N/A,Pending,Accessibility compliance
+
+TC-069,Accessibility - Screen Reader,Test with screen reader,Low,Screen reader software,"1. Enable screen reader
+2. Navigate application
+3. Test major features
+4. Verify announcements","Screen reader announces elements correctly
+Images have alt text
+Buttons have labels
+Forms are accessible
+ARIA labels present","Screen reader: NVDA or JAWS",Pending,Accessibility
+
+TC-070,Backup - Database Backup,Verify database backup process,Low,Super admin access,"1. Login as super admin
+2. Navigate to System Settings
+3. Trigger manual backup
+4. Verify backup created
+5. Test backup restoration (on test system)","Backup created successfully
+Backup file downloadable
+Contains all data
+Can be restored
+Automated backups working",Test on staging environment,Pending,Data protection

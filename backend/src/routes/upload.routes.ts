@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
+import { optionalLicenseMiddleware } from '../middleware/licenseAuth';
 import { uploadSessionService } from '../services/UploadSessionService';
 import { chunkedUploadService } from '../services/ChunkedUploadService';
 
@@ -14,14 +15,110 @@ const upload = multer({
   },
 });
 
+// Multer error handler (currently unused but available for future use)
+// const handleMulterError = (err: any, _req: Request, res: Response, next: any) => {
+//   if (err instanceof multer.MulterError) {
+//     console.error('[Multer Error]:', err.message);
+//     return res.status(400).json({
+//       error: {
+//         code: 'UPLOAD_ERROR',
+//         message: err.message,
+//         timestamp: new Date().toISOString(),
+//       },
+//     });
+//   }
+//   next(err);
+// };
+
+/**
+ * POST /api/upload/extract-metadata
+ * Extract DICOM metadata from file without uploading
+ * Requires authentication
+ */
+router.post('/extract-metadata', authMiddleware, upload.single('file'), async (req: Request, res: Response) => {
+  console.log('[extract-metadata] ========== REQUEST RECEIVED ==========');
+  console.log('[extract-metadata] User authenticated:', !!(req as any).user);
+  console.log('[extract-metadata] User email:', (req as any).user?.email);
+  try {
+    const file = req.file;
+
+    if (!file) {
+      console.log('[extract-metadata] No file in request');
+      return res.status(400).json({
+        error: {
+          code: 'NO_FILE',
+          message: 'No file provided',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    console.log('[extract-metadata] File received:', file.originalname, 'Size:', file.size);
+
+    const dicomModule = await import('../services/DicomMetadataService');
+    const dicomMetadataService = dicomModule.dicomMetadataService;
+
+    // Check if it's a DICOM file
+    const isDicom = dicomMetadataService.isDicomFile(file.buffer);
+    console.log('[extract-metadata] Is DICOM:', isDicom);
+    
+    if (!isDicom) {
+      return res.json({
+        success: true,
+        data: {
+          isDicom: false,
+          metadata: null,
+        },
+      });
+    }
+
+    // Extract metadata
+    const metadata = dicomMetadataService.extractMetadata(file.buffer);
+    console.log('[extract-metadata] Metadata extracted:', metadata);
+
+    res.json({
+      success: true,
+      data: {
+        isDicom: true,
+        metadata,
+      },
+    });
+  } catch (error) {
+    console.error('[extract-metadata] Error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to extract metadata';
+
+    res.status(500).json({
+      error: {
+        code: 'METADATA_EXTRACTION_ERROR',
+        message,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+});
+
 /**
  * POST /api/upload
  * Simple single-file upload endpoint
+ * Uses optional license middleware to support both licensed and non-licensed users
  */
-router.post('/', authMiddleware, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', authMiddleware, optionalLicenseMiddleware, upload.single('file'), async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
+    const license = (req as any).license;
     const file = req.file;
+    const { 
+      patientName, 
+      patientId, 
+      patientBirthDate,
+      patientSex,
+      patientAge,
+      studyDate,
+      studyDescription,
+      modality,
+      institutionName,
+      metadataSource 
+    } = req.body;
 
     if (!file) {
       return res.status(400).json({
@@ -33,11 +130,30 @@ router.post('/', authMiddleware, upload.single('file'), async (req: Request, res
       });
     }
 
+    // Check quota if user has a license
+    if (license) {
+      if (license.uploadsUsed >= license.uploadQuota) {
+        return res.status(429).json({
+          error: {
+            code: 'QUOTA_EXCEEDED',
+            message: 'Upload quota has been exceeded',
+            data: {
+              quota: license.uploadQuota,
+              used: license.uploadsUsed,
+            },
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    }
+
     // Import required services
     const { fileValidationService } = await import('../services/FileValidationService');
     const { imageRepository } = await import('../repositories/ImageRepository');
     const { storageService } = await import('../services/StorageService');
+    const { licenseService } = await import('../services/LicenseService');
     const { v4: uuidv4 } = await import('uuid');
+    const { query } = await import('../config/database');
 
     // Validate file
     const validation = await fileValidationService.validateFile(file.buffer, file.originalname);
@@ -58,23 +174,73 @@ router.post('/', authMiddleware, upload.single('file'), async (req: Request, res
     const fileExtension = detectedFormat !== 'unknown' ? detectedFormat : (file.originalname.split('.').pop() || 'bin');
 
     console.log(`File uploaded: ${file.originalname}, Detected format: ${detectedFormat}, Extension: ${fileExtension}`);
+    console.log(`Patient Info - Name: ${patientName}, ID: ${patientId}`);
+    if (license) {
+      console.log(`License: ${license.ambulanceName} (${license.licenseKey})`);
+    }
 
-    // Save file to storage
+    // Create patient folder name
+    const patientFolder = patientName || patientId || 'unknown';
+    
+    // Save file to storage with patient folder
     const storagePath = await storageService.saveFile(
       user.id,
       imageId,
       file.buffer,
-      fileExtension
+      fileExtension,
+      patientFolder
     );
 
-    // Create database record
+    // Create database record with license_id if applicable
     const image = await imageRepository.create({
       userId: user.id,
       originalFilename: file.originalname,
       fileFormat: detectedFormat,
       fileSize: file.size,
       storagePath,
+      licenseId: license?.id || null,
     });
+
+    // Store patient metadata
+    if (patientName || patientId) {
+      try {
+        await query(
+          `INSERT INTO image_metadata (
+            image_id, patient_name, patient_id, patient_birth_date, 
+            patient_sex, patient_age, study_date, study_description, 
+            modality, institution_name, metadata_source
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            image.id, 
+            patientName || null, 
+            patientId || null,
+            patientBirthDate || null,
+            patientSex || null,
+            patientAge || null,
+            studyDate || null,
+            studyDescription || null,
+            modality || null,
+            institutionName || null,
+            metadataSource || 'manual'
+          ]
+        );
+      } catch (metaError) {
+        console.error('Failed to insert metadata:', metaError);
+        // Continue even if metadata insert fails
+      }
+    }
+
+    // Increment license quota if applicable
+    if (license) {
+      try {
+        await licenseService.incrementUploadCount(license.id);
+        console.log(`Incremented upload count for license ${license.id}`);
+      } catch (quotaError) {
+        console.error('Failed to increment quota:', quotaError);
+        // Continue even if quota increment fails
+      }
+    }
 
     // Generate thumbnail (async, don't wait)
     storageService.generateThumbnail(user.id, imageId, file.buffer, fileExtension)
@@ -93,6 +259,10 @@ router.post('/', authMiddleware, upload.single('file'), async (req: Request, res
         format: image.fileFormat,
         size: image.fileSize,
         uploadedAt: image.uploadedAt,
+        license: license ? {
+          ambulanceName: license.ambulanceName,
+          uploadsRemaining: license.uploadQuota - license.uploadsUsed - 1,
+        } : null,
       },
     });
   } catch (error) {

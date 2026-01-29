@@ -1,81 +1,44 @@
-import { Worker, Job } from 'bullmq';
-import { createRedisConnection } from '../config/redis';
-import { ThumbnailGenerationJob } from '../services/QueueService';
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs/promises';
+// Thumbnail Worker using BullMQ - Currently not used (using inMemoryWorkers instead)
+// Uncomment and install bullmq if you want to use Redis-based workers
 
-const THUMBNAIL_SIZE = 200;
+// import { Worker, Job } from 'bullmq';
+// import { createRedisConnection } from '../config/redis';
+// import { ThumbnailGenerationJob } from '../services/QueueService';
+// import sharp from 'sharp';
+// import path from 'path';
+// import fs from 'fs/promises';
 
-const processThumbnailGeneration = async (job: Job<ThumbnailGenerationJob>) => {
-  const { imageId, filePath } = job.data;
+// const THUMBNAIL_SIZE = 200;
 
-  console.log(`Generating thumbnail for image ${imageId}`);
-  await job.updateProgress(10);
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// // const _processThumbnailGeneration = async (_job: any) => {
+//   throw new Error('Thumbnail worker not configured. Using in-memory workers instead.');
+// };
 
-  try {
-    // Check if file exists
-    const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-    if (!fileExists) {
-      throw new Error(`File not found: ${filePath}`);
-    }
+export const createThumbnailWorker = (): any => {
+  // const worker = new Worker<ThumbnailGenerationJob>('thumbnail-generation', processThumbnailGeneration, {
+  //   connection: createRedisConnection(),
+  //   concurrency: 5,
+  //   limiter: {
+  //     max: 20,
+  //     duration: 1000,
+  //   },
+  // });
 
-    await job.updateProgress(30);
+  // worker.on('completed', (job: any) => {
+  //   console.log(`Thumbnail worker completed job ${job.id}`);
+  // });
 
-    // Generate thumbnail path
-    const ext = path.extname(filePath);
-    const thumbnailPath = filePath.replace(ext, `_thumb${ext}`);
+  // worker.on('failed', (job: any, err: any) => {
+  //   console.error(`Thumbnail worker failed job ${job?.id}:`, err.message);
+  // });
 
-    // Generate thumbnail
-    await sharp(filePath)
-      .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .toFile(thumbnailPath);
+  // worker.on('error', (err: any) => {
+  //   console.error('Thumbnail worker error:', err);
+  // });
 
-    await job.updateProgress(90);
-
-    console.log(`Thumbnail generated for image ${imageId}`);
-    await job.updateProgress(100);
-
-    return {
-      success: true,
-      imageId,
-      thumbnailPath,
-      message: 'Thumbnail generated successfully',
-    };
-  } catch (error) {
-    console.error(`Thumbnail generation failed for image ${imageId}:`, error);
-    throw error;
-  }
-};
-
-export const createThumbnailWorker = () => {
-  const worker = new Worker<ThumbnailGenerationJob>(
-    'thumbnail-generation',
-    processThumbnailGeneration,
-    {
-      connection: createRedisConnection(),
-      concurrency: 5, // Process up to 5 jobs concurrently
-      limiter: {
-        max: 20, // Max 20 jobs
-        duration: 1000, // per second
-      },
-    }
-  );
-
-  worker.on('completed', (job) => {
-    console.log(`Thumbnail worker completed job ${job.id}`);
-  });
-
-  worker.on('failed', (job, err) => {
-    console.error(`Thumbnail worker failed job ${job?.id}:`, err.message);
-  });
-
-  worker.on('error', (err) => {
-    console.error('Thumbnail worker error:', err);
-  });
-
-  return worker;
+  // return worker;
+  
+  console.log('Thumbnail worker not configured. Using in-memory workers instead.');
+  return null;
 };

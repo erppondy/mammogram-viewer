@@ -1,5 +1,8 @@
-import { Queue, QueueEvents } from 'bullmq';
-import { createRedisConnection } from '../config/redis';
+// QueueService using BullMQ - Currently not used (using InMemoryQueueService instead)
+// Uncomment and install bullmq if you want to use Redis-based queues
+
+// import { Queue, QueueEvents } from 'bullmq';
+// import { createRedisConnection } from '../config/redis';
 
 export interface DicomConversionJob {
   imageId: number;
@@ -15,63 +18,64 @@ export interface ThumbnailGenerationJob {
 }
 
 class QueueService {
-  private dicomQueue: Queue<DicomConversionJob>;
-  private thumbnailQueue: Queue<ThumbnailGenerationJob>;
-  private queueEvents: QueueEvents;
+  private dicomQueue: any; // Queue<DicomConversionJob>;
+  private thumbnailQueue: any; // Queue<ThumbnailGenerationJob>;
+  private queueEvents: any; // QueueEvents;
 
   constructor() {
-    const connection = createRedisConnection();
+    // const connection = createRedisConnection();
+    throw new Error('QueueService not configured. Using InMemoryQueueService instead.');
 
-    this.dicomQueue = new Queue<DicomConversionJob>('dicom-conversion', {
-      connection,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: {
-          age: 24 * 3600, // Keep completed jobs for 24 hours
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 7 * 24 * 3600, // Keep failed jobs for 7 days
-        },
-      },
-    });
+    // this.dicomQueue = new Queue<DicomConversionJob>('dicom-conversion', {
+    //   connection,
+    //   defaultJobOptions: {
+    //     attempts: 3,
+    //     backoff: {
+    //       type: 'exponential',
+    //       delay: 2000,
+    //     },
+    //     removeOnComplete: {
+    //       age: 24 * 3600, // Keep completed jobs for 24 hours
+    //       count: 1000,
+    //     },
+    //     removeOnFail: {
+    //       age: 7 * 24 * 3600, // Keep failed jobs for 7 days
+    //     },
+    //   },
+    // });
 
-    this.thumbnailQueue = new Queue<ThumbnailGenerationJob>('thumbnail-generation', {
-      connection,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-        removeOnComplete: {
-          age: 24 * 3600,
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 7 * 24 * 3600,
-        },
-      },
-    });
+    // this.thumbnailQueue = new Queue<ThumbnailGenerationJob>('thumbnail-generation', {
+    //   connection,
+    //   defaultJobOptions: {
+    //     attempts: 3,
+    //     backoff: {
+    //       type: 'exponential',
+    //       delay: 1000,
+    //     },
+    //     removeOnComplete: {
+    //       age: 24 * 3600,
+    //       count: 1000,
+    //     },
+    //     removeOnFail: {
+    //       age: 7 * 24 * 3600,
+    //     },
+    //   },
+    // });
 
-    this.queueEvents = new QueueEvents('dicom-conversion', { connection: createRedisConnection() });
+    // this.queueEvents = new QueueEvents('dicom-conversion', { connection: createRedisConnection() });
 
-    this.setupEventListeners();
+    // this.setupEventListeners();
   }
 
-  private setupEventListeners() {
-    this.queueEvents.on('completed', ({ jobId }) => {
-      console.log(`Job ${jobId} completed successfully`);
-    });
+  // private setupEventListeners() {
+  //   this.queueEvents.on('completed', ({ jobId }: any) => {
+  //     console.log(`Job ${jobId} completed successfully`);
+  //   });
 
-    this.queueEvents.on('failed', ({ jobId, failedReason }) => {
-      console.error(`Job ${jobId} failed:`, failedReason);
-    });
-  }
+  //   this.queueEvents.on('failed', ({ jobId, failedReason }: any) => {
+  //     console.error(`Job ${jobId} failed:`, failedReason);
+  //   });
+  // }
 
   async addDicomConversionJob(data: DicomConversionJob, priority: number = 0) {
     const job = await this.dicomQueue.add('convert-dicom', data, {
