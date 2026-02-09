@@ -1,10 +1,10 @@
 # Mammogram Annotation Dataset Export
 
 ## Export Information
-- **Date**: 2026-01-13T06:03:47.980Z
+- **Date**: 2026-02-04T12:00:23.735Z
 - **Format**: COCO JSON
-- **Images**: 11
-- **Annotations**: 21
+- **Images**: 12
+- **Annotations**: 22
 - **Categories**: 8
 
 ## Directory Structure
@@ -113,7 +113,7 @@ dataset = tf.data.Dataset.from_generator(
 ```
 
 ## Annotation Statistics
-- **mass**: 19 annotations
+- **mass**: 20 annotations
 - **asymmetry**: 1 annotations
 - **distortion**: 1 annotations
 
@@ -129,5 +129,5 @@ If you use this dataset, please cite:
 ```
 Mammogram Viewer Application
 Annotation Dataset Export
-Generated: 2026-01-13T06:03:47.981Z
+Generated: 2026-02-04T12:00:23.735Z
 ```
